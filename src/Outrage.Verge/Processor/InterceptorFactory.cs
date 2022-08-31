@@ -1,0 +1,42 @@
+﻿using Outrage.Verge.Parser.Tokens;
+using Outrage.TokenParser;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security;
+using System.Text;
+using System.Threading.Tasks;
+using Outrage.Verge.Library;
+
+namespace Outrage.Verge.Processor
+{
+    public interface IInterceptor
+    {
+        void Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StringBuilder builder);
+    }
+    public class InterceptorFactory
+    {
+        private readonly ContentLibrary contentLibrary;
+        public IDictionary<string, IInterceptor> interceptors = new Dictionary<string, IInterceptor>();
+
+        public InterceptorFactory(ContentLibrary contentLibrary)
+        {
+            this.contentLibrary = contentLibrary;
+            this.interceptors["c-headline"] = new HeadlineInterceptor();
+        }
+
+        public bool IsDefined(string tagName)
+        {
+            return this.interceptors.ContainsKey(tagName);
+        }
+
+        public void RenderInterceptor(OpenTagToken openTag, IEnumerable<IToken> tokens, StringBuilder builder)
+        {
+            if (!IsDefined(openTag.NodeName))
+                throw new ArgumentException($"No interceptor is defined for {openTag.NodeName}.");
+
+            var interceptor = this.interceptors[openTag.NodeName];
+            interceptor.Render(openTag, tokens, builder);
+        }
+    }
+}
