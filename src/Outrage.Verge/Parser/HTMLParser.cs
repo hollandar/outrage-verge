@@ -10,33 +10,19 @@ public static class HTMLParser
     public static IMatcher Identifier =
         Matcher.Some(
             Characters.AnyChar.Except(Matcher.Chars('\t', '\n', '\f', '>', '/', '\'', '"', '=', ' ')))
-        .Convert((string value) =>
-        {
-            return new HtmlIdentifierToken { Name = value };
-        });
+        .Convert((string value) => new HtmlIdentifierToken(value));
 
-    public static IMatcher AttributeNameOnly = Identifier.Wrap((match) =>
-        new AttributeNameToken { Name = match.Tokens.OfType<HtmlIdentifierToken>().Single() }
-        )
-        .Wrap((match) => new AttributeToken
-        {
-            Name = match.Tokens.OfType<AttributeNameToken>().Single(),
-            Value = null
-        });
+    public static IMatcher AttributeNameOnly = Identifier.Wrap((match) => new AttributeNameToken(match.Tokens))
+        .Wrap((match) => new AttributeToken(match.Tokens));
 
-    public static IMatcher AttributeNameValue = Identifier.Wrap((match) =>
-        new AttributeNameToken { Name = match.Tokens.OfType<HtmlIdentifierToken>().Single() })
+    public static IMatcher AttributeNameValue = Identifier.Wrap((match) => new AttributeNameToken(match.Tokens))
         .Then(Characters.Equal.Ignore())
         .Then(Matcher.FirstOf(
             Matcher.Surrounded(Characters.AnyChar.Except(Matcher.Char('\'')).Many(), Matcher.Char('\'').Ignore(), Matcher.Char('\'').Ignore()),
             Matcher.Surrounded(Characters.AnyChar.Except(Matcher.Char('"')).Many(), Matcher.Char('"').Ignore(), Matcher.Char('"').Ignore()),
             Characters.AnyChar.Except(Matcher.Chars(' ', '>')).Many()
-            ).Convert((string value) => new AttributeValueToken { Value = value })
-        ).Wrap((match) => new AttributeToken
-        {
-            Name = match.Tokens.OfType<AttributeNameToken>().Single(),
-            Value = match.Tokens.OfType<AttributeValueToken>().Single(),
-        });
+            ).Convert((string value) => new AttributeValueToken(value))
+        ).Wrap((match) => new AttributeToken(match.Tokens));
 
     public static IMatcher Attribute = Matcher.FirstOf(
         AttributeNameValue,
@@ -50,28 +36,20 @@ public static class HTMLParser
         .Then(Characters.Whitespaces.Optional())
         .Then(Characters.ForwardSlash.Optional().Produce<CloseTagToken>())
         .Then(Characters.GreaterThan)
-        .Wrap((match) => new OpenTagToken
-        {
-            Name = match.Tokens.OfType<HtmlIdentifierToken>().Single(),
-            Attributes = match.Tokens.OfType<AttributeToken>(),
-            Closed = match.Tokens.OfType<CloseTagToken>().Any()
-        });
+        .Wrap((match) => new OpenTagToken(match.Tokens));
 
     public static IMatcher CloseTag = Characters.LessThan
         .Then(Characters.ForwardSlash)
         .Then(Identifier)
         .Then(Characters.Whitespaces.Optional().Ignore())
         .Then(Characters.GreaterThan)
-        .Wrap((match) => new CloseTagToken
-        {
-            Name = match.Tokens.OfType<HtmlIdentifierToken>().Single()
-        });
+        .Wrap((match) => new CloseTagToken(match.Tokens));
 
     public static IMatcher Script = OpenTag.When(tokens =>
         tokens.OfType<OpenTagToken>().Single().Name.Name == "script"
     ).Then(Matcher.Many(Characters.AnyChar.Except(Matcher.String("</script")))).Then(CloseTag).When(tokens =>
     {
-        return tokens.OfType<CloseTagToken>().Single().Name.Name == "script";
+        return tokens.OfType<CloseTagToken>().Single().NodeName == "script";
     });
 
     public static IMatcher Content =

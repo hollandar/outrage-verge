@@ -127,8 +127,8 @@ namespace Outrage.Verge.Processor
                             builder.Append(c);
                             lastWritten = c;
                             continue;
-                        } 
-                        
+                        }
+
 
                         if (c != ' ' && c != '\r' && c != '\n')
                         {
@@ -172,7 +172,9 @@ namespace Outrage.Verge.Processor
                         if (!openTagToken.Closed)
                             tokens = enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == openTagToken.NodeName);
 
-                        this.interceptorFactory.RenderInterceptor(openTagToken, tokens, builder);
+                        var interceptorTokens = this.interceptorFactory.RenderInterceptor(openTagToken, tokens, builder);
+                        if (interceptorTokens?.Any() ?? false)
+                            this.RenderContent(interceptorTokens, builder);
                     }
                     else
                     {
@@ -209,7 +211,7 @@ namespace Outrage.Verge.Processor
             var sectionExists = this.sectionContent.ContainsKey(sectionName);
 
             var sectionExpected = false;
-            if (openTag.HasAttribute(Constants.SectionRequiredAtt)) 
+            if (openTag.HasAttribute(Constants.SectionRequiredAtt))
                 sectionExpected = openTag.GetAttributeValue<bool?>(Constants.SectionRequiredAtt) ?? false;
 
             if (!sectionExists && sectionExpected)

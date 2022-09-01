@@ -6,6 +6,24 @@ namespace Outrage.Verge.Parser.Tokens;
 
 public class OpenTagToken : IToken
 {
+    public OpenTagToken(IEnumerable<IToken> tokens) {
+        this.Name = tokens.OfType<HtmlIdentifierToken>().Single();
+        this.Attributes = tokens.OfType<AttributeToken>();
+        this.Closed = tokens.OfType<CloseTagToken>().Any();
+    }
+
+    public OpenTagToken(string tag, bool closed, params AttributeToken[] attributes)
+    {
+        this.Name = new HtmlIdentifierToken(tag);
+        this.Attributes = attributes;
+        this.Closed = closed;
+    }
+
+    public OpenTagToken(string tag, params AttributeToken[] attributes): this(tag, false, attributes)
+    {
+
+    }
+
     public HtmlIdentifierToken Name { get; set; }
     public IEnumerable<AttributeToken> Attributes { get; set; }
     public bool Closed { get; set; } = false;
