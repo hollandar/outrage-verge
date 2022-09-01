@@ -40,11 +40,7 @@ public class OpenTagToken : IToken
         if (Attributes?.Any() ?? false)
         {
             tagBuilder.Append(" ");
-            foreach (var attribute in Attributes)
-            {
-                tagBuilder.Append(attribute.ToString());
-                tagBuilder.Append(" ");
-            }
+            tagBuilder.Append(String.Join(" ", Attributes.Select(r => r.ToString())));
         }
 
         if (Closed)

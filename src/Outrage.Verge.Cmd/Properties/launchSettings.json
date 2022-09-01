@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Outrage.Verge.Cmd": {
+      "commandName": "Project",
+      "commandLineArgs": "serve --in g:\\scratch\\htmlt --out g:\\scratch\\htmlt\\publish"
+    }
+  }
+}

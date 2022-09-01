@@ -8,8 +8,10 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor
 {
-    internal class HeadlineInterceptor : IInterceptor
+    public class HeadlineInterceptor : IInterceptor
     {
+        public string GetTag() => "Headline";
+
         public void Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StringBuilder builder)
         {
             if (openTag.HasAttribute("headline"))

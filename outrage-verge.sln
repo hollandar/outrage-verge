@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Compose.Serialize", "tools\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parser", "..\outrage-parser\src\Parser\Parser.csproj", "{3E5BCCEC-2F69-4822-AD71-3A0E2EE84BC2}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Outrage.Verge.Cmd", "src\Outrage.Verge.Cmd\Outrage.Verge.Cmd.csproj", "{14690405-0AF9-4685-A0BA-23E5F943D160}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Outrage.Verge.Host", "src\Outrage.Verge.Host\Outrage.Verge.Host.csproj", "{B75E1EA3-F232-43A1-AE33-1C1291BB24CC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{3E5BCCEC-2F69-4822-AD71-3A0E2EE84BC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3E5BCCEC-2F69-4822-AD71-3A0E2EE84BC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3E5BCCEC-2F69-4822-AD71-3A0E2EE84BC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14690405-0AF9-4685-A0BA-23E5F943D160}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14690405-0AF9-4685-A0BA-23E5F943D160}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14690405-0AF9-4685-A0BA-23E5F943D160}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14690405-0AF9-4685-A0BA-23E5F943D160}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B75E1EA3-F232-43A1-AE33-1C1291BB24CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B75E1EA3-F232-43A1-AE33-1C1291BB24CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B75E1EA3-F232-43A1-AE33-1C1291BB24CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B75E1EA3-F232-43A1-AE33-1C1291BB24CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

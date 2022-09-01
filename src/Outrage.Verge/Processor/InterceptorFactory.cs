@@ -7,11 +7,13 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Outrage.Verge.Library;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Outrage.Verge.Processor
 {
     public interface IInterceptor
     {
+        string GetTag();
         void Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StringBuilder builder);
     }
     public class InterceptorFactory
@@ -19,10 +21,22 @@ namespace Outrage.Verge.Processor
         private readonly ContentLibrary contentLibrary;
         public IDictionary<string, IInterceptor> interceptors = new Dictionary<string, IInterceptor>();
 
-        public InterceptorFactory(ContentLibrary contentLibrary)
+        public InterceptorFactory(ContentLibrary contentLibrary, IServiceProvider? serviceProvider)
         {
+
             this.contentLibrary = contentLibrary;
-            this.interceptors["c-headline"] = new HeadlineInterceptor();
+            if (serviceProvider != null)
+            {
+                var interceptors = serviceProvider.GetService<IEnumerable<IInterceptor>>();
+                foreach (var interceptor in interceptors)
+                {
+                    if (this.interceptors.ContainsKey(interceptor.GetTag()))
+                    {
+                        throw new ArgumentException($"An interceptor with the name {interceptor.GetTag()} is already registered.");
+                    }
+                    this.interceptors[interceptor.GetTag()] = interceptor;
+                }
+            }
         }
 
         public bool IsDefined(string tagName)

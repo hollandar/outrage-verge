@@ -16,13 +16,15 @@ namespace Outrage.Verge.Processor
     {
         private readonly ContentLibrary contentLibrary;
         private readonly InterceptorFactory interceptorFactory;
-        private readonly IDictionary<string, string> variables;
+        private readonly Variables variables;
         private readonly IDictionary<string, List<IToken>> sectionContent = new Dictionary<string, List<IToken>>();
         private IEnumerable<IToken> tokens;
         private PageProcessor? layoutPage;
         private PageProcessor? childPage;
+        private bool skipSpace = true;
+        private char lastWritten = char.MinValue;
 
-        protected PageProcessor(string contentName, PageProcessor childPage, ContentLibrary contentLibrary, InterceptorFactory interceptorFactory, IDictionary<string, string> variables)
+        protected PageProcessor(string contentName, PageProcessor childPage, ContentLibrary contentLibrary, InterceptorFactory interceptorFactory, Variables variables)
         {
             this.contentLibrary = contentLibrary;
             this.interceptorFactory = interceptorFactory;
@@ -31,7 +33,7 @@ namespace Outrage.Verge.Processor
             this.Process(contentName);
         }
 
-        public PageProcessor(string contentName, ContentLibrary contentLibrary, InterceptorFactory interceptorFactory, IDictionary<string, string> variables)
+        public PageProcessor(string contentName, ContentLibrary contentLibrary, InterceptorFactory interceptorFactory, Variables variables)
         {
             this.contentLibrary = contentLibrary;
             this.interceptorFactory = interceptorFactory;
@@ -117,7 +119,25 @@ namespace Outrage.Verge.Processor
                 if (enumerator.Current is StringValueToken)
                 {
                     var stringValueToken = (StringValueToken)enumerator.Current;
-                    builder.Append(stringValueToken.Value);
+                    for (var i = 0; i < stringValueToken.Value.Span.Length; i++)
+                    {
+                        char c = stringValueToken.Value.Span[i];
+                        if (c == ' ' && !skipSpace && lastWritten != ' ')
+                        {
+                            builder.Append(c);
+                            lastWritten = c;
+                            continue;
+                        } 
+                        
+
+                        if (c != ' ' && c != '\r' && c != '\n')
+                        {
+                            builder.Append(c);
+                            lastWritten = c;
+                            skipSpace = false;
+                            continue;
+                        }
+                    }
                     continue;
                 }
 
@@ -157,6 +177,7 @@ namespace Outrage.Verge.Processor
                     else
                     {
                         builder.Append(openTagToken.ToString());
+                        skipSpace = true;
                         continue;
                     }
                 }
@@ -175,6 +196,7 @@ namespace Outrage.Verge.Processor
                     else
                     {
                         builder.Append(closeTagToken.ToString());
+                        skipSpace = true;
                         continue;
                     }
                 }
@@ -208,14 +230,7 @@ namespace Outrage.Verge.Processor
 
         protected string HandleVariables(string input)
         {
-            foreach (var variable in this.variables)
-            {
-                var variableName = $"$({variable.Key})";
-                if (input.Contains(variableName))
-                    input = input.Replace(variableName, variable.Value);
-            }
-
-            return input;
+            return this.variables.ReplaceVariables(input);
         }
     }
 }
