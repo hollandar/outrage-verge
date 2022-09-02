@@ -12,7 +12,7 @@ namespace Outrage.Verge.Processor
     public interface IProcessorFactory
     {
         string GetExtension();
-        IProcessor BuildProcessor(PathBuilder pageFile, ContentLibrary contentLibrary, InterceptorFactory interceptorFactory, Variables variables);
+        IProcessor BuildProcessor(PathBuilder pageFile, RenderContext renderContext);
         IContentWriter BuildContentWriter();
     }
 }

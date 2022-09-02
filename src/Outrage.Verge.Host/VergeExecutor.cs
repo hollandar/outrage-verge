@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using System.Runtime.CompilerServices;
 using System.CommandLine;
 using Outrage.Verge.Processor.Html;
+using Outrage.Verge.Processor.Markdown;
 
 namespace Outrage.Verge.Host;
 
@@ -78,11 +79,12 @@ public class VergeExecutor : IDisposable
         });
         services.AddSingleton<IInterceptor, HeadlineInterceptor>();
         services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
+        services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
 
         var serviceProvider = services.BuildServiceProvider();
         serveCommand.SetHandler((inputPathValue, outputPathValue) => {
-            var inputPath = new PathBuilder(inputPathValue);
-            var outputPath = new PathBuilder(outputPathValue);
+            var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
+            var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
 
             using (var executor = new VergeExecutor(inputPath, outputPath, serviceProvider))
             {
@@ -98,8 +100,8 @@ public class VergeExecutor : IDisposable
 
         buildCommand.SetHandler((inputPathValue, outputPathValue) =>
         {
-            var inputPath = new PathBuilder(inputPathValue);
-            var outputPath = new PathBuilder(outputPathValue);
+            var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
+            var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
 
             using (var executor = new VergeExecutor(inputPath, outputPath, serviceProvider))
             {
@@ -193,7 +195,7 @@ public class VergeExecutor : IDisposable
 
     private void Watcher_Changed(object sender, FileSystemEventArgs e)
     {
-        var file = new PathBuilder(e.FullPath);
+        var file = PathBuilder.From(e.FullPath);
         var relativeToPutput = file.IsRelativeTo(this.outputPath);
 
         if (!relativeToPutput)

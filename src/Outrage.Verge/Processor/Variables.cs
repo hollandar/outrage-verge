@@ -1,4 +1,8 @@
-﻿using System;
+﻿using Markdig.Helpers;
+using Outrage.TokenParser;
+using Outrage.TokenParser.Matchers;
+using Outrage.TokenParser.Tokens;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -34,16 +38,68 @@ namespace Outrage.Verge.Processor
             }
         }
 
-        public string ReplaceVariables(string input, string leadin = "$(", string trailin = ")")
+        public Variables Combine(Variables variables)
         {
-            foreach (var variable in this.values)
+            var result = new Variables(this.values);
+            foreach (var variable in variables.values)
             {
-                var variableName = $"{leadin}{variable.Key}{trailin}";
-                if (input.Contains(variableName))
-                    input = input.Replace(variableName, variable.Value);
+                result.values.TryAdd(variable.Key, variable.Value);
             }
 
-            return input;
+            return result;
+        }
+
+        public bool HasValue(string name)
+        {
+            return this.values.ContainsKey(name);
+        }
+
+        public string GetValue(string name)
+        {
+            if (this.values.TryGetValue(name, out var result))
+                return result;
+            else
+                throw new ArgumentException($"Variable {name} is undefined.");
+        }
+
+        static IMatcher variableMatcher = Matcher.FirstOf(
+            Matcher.Char('$').Ignore()
+                .Then(Matcher.Char('(').Ignore())
+                .Then(Identifiers.Identifier)
+                .Then(Matcher.Char(')').Ignore()),
+            Characters.AnyChar
+        ).Many().Then(Controls.EndOfFile);
+
+
+        public string ReplaceVariables(string input, string leadin = "$(", string trailin = ")")
+        {
+            var match = TokenParser.TokenParser.Parse(input, variableMatcher);
+            if (match.Success)
+            {
+                StringBuilder resultBuilder = new StringBuilder();
+                foreach (var token in match.Tokens)
+                {
+                    if (token is IdentifierToken)
+                    {
+                        var identifierToken = token as IdentifierToken;
+                        if (HasValue(identifierToken.Value))
+                        {
+                            resultBuilder.Append(GetValue(identifierToken.Value));
+                        }
+                    }
+                    if (token is StringValueToken)
+                    {
+                        var stringValueToken = token as StringValueToken;
+                        resultBuilder.Append(stringValueToken.Value);
+                    }
+                }
+
+                return resultBuilder.ToString();
+            }
+            else
+            {
+                throw new ArgumentException(match.Error);
+            }
         }
     }
 }

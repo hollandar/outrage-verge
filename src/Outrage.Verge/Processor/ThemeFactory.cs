@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor
 {
-    internal class ThemesFactory
+    public class ThemesFactory
     {
         private readonly ContentLibrary contentLibrary;
         private readonly string themeBase;

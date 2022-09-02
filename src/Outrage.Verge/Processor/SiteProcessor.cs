@@ -14,54 +14,80 @@ namespace Outrage.Verge.Processor
     public class SiteProcessor
     {
         private readonly PathBuilder rootPath;
-        private readonly ContentLibrary contentLibrary;
-        private readonly InterceptorFactory interceptorFactory;
-        private readonly ThemesFactory themesFactory;
         private readonly PathBuilder outputPath;
-        private readonly SiteConfiguration siteConfiguration;
-        private readonly HashSet<string> writtenFiles = new();
-        private readonly Variables variables;
-        private readonly ProcessorFactory processorFactory;
+        private readonly RenderContext renderContext;
 
-        public SiteProcessor(string rootPath, string outputPath, IServiceProvider? serviceProvider)
+        public SiteProcessor(string rootPath, string outputPath, IServiceProvider serviceProvider)
         {
-            this.rootPath = new PathBuilder(rootPath);
+            this.rootPath = PathBuilder.From(rootPath);
             if (!this.rootPath.IsDirectory)
                 throw new ArgumentException($"{rootPath} was not found.");
 
-            this.contentLibrary = new ContentLibrary(rootPath);
-            this.siteConfiguration = this.contentLibrary.Deserialize<SiteConfiguration>("site");
-            this.interceptorFactory = new InterceptorFactory(this.contentLibrary, serviceProvider);
-            this.themesFactory = new ThemesFactory(this.contentLibrary, this.siteConfiguration.ThemesPath);
-            this.processorFactory = new ProcessorFactory(serviceProvider);
-            this.outputPath = new PathBuilder(outputPath);
+            this.renderContext = new RenderContext(serviceProvider, rootPath);
+            this.outputPath = PathBuilder.From(outputPath);
             this.outputPath.CreateDirectory();
 
-            this.variables = new Variables(new Dictionary<string, string>
-            {
-                {"themeTemplate", themesFactory.GetThemeLayout(this.siteConfiguration.Theme) },
-                {"themeBase", $"{siteConfiguration.ThemesPath}/{siteConfiguration.Theme}" }
-            });
         }
 
         public void Process()
         {
-            var files = this.rootPath.ListContents(options: new EnumerationOptions { RecurseSubdirectories = true });
+            HashSet<string> writtenFiles = new();
+            ProcessContentFiles(writtenFiles);
+            CopyFiles(writtenFiles);
+            CleanUpUnwrittenFiles(writtenFiles);
 
-            foreach (var pagePathString in siteConfiguration.PagePaths)
+            CleanUpEmptyDirectories();
+        }
+
+        private void CopyFiles(HashSet<string> writtenFiles)
+        {
+            foreach (var copyInstruction in this.renderContext.SiteConfiguration.Copy)
+            {
+                var toPath = outputPath / copyInstruction.To;
+                if (toPath.IsFile)
+                {
+                    throw new ArgumentException($"{toPath} can not be a file, it must be a folder.");
+                }
+                var fromPath = this.rootPath / copyInstruction.From;
+                if (fromPath.IsFile)
+                {
+                    var writtenFile = fromPath.CopyToFolder(toPath);
+                    writtenFiles.Add(writtenFile);
+                }
+                if (fromPath.IsDirectory)
+                {
+                    var copyFiles = Glob.Files(fromPath, copyInstruction.Glob);
+                    foreach (var copyFile in copyFiles)
+                    {
+                        var fromFile = fromPath / copyFile;
+                        var writtenFile = fromFile.CopyToFolder(toPath);
+                        writtenFiles.Add(writtenFile);
+                    }
+                }
+            }
+        }
+
+        private void ProcessContentFiles(HashSet<string> writtenFiles)
+        {
+            foreach (var pagePathString in this.renderContext.SiteConfiguration.PagePaths)
             {
                 var pagePath = this.rootPath / pagePathString;
-                foreach (var pageGlob in this.siteConfiguration.PageGlobs)
+                foreach (var pageGlob in this.renderContext.SiteConfiguration.PageGlobs)
                 {
                     var pageFiles = Glob.Files(pagePath, pageGlob);
 
                     foreach (var pageFileString in pageFiles)
                     {
                         var pageFile = pagePath / pageFileString;
-                        if (pageFile.Extension == ".html")
+                        var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(pageFile.Extension);
+                        if (pageProcessorFactory != null)
                         {
                             var pageName = pageFile.GetRelativeTo(pagePath);
-                            ProcessHTMLPage(pageName, pageFile);
+                            var pageProcessor = pageProcessorFactory.BuildProcessor(pageFile, this.renderContext);
+                            var pageWriter = pageProcessorFactory.BuildContentWriter();
+                            var (writtenFile, contentStream) = pageWriter.Write(pageName, pageFile, outputPath);
+                            using (contentStream) { pageProcessor.RenderToStream(contentStream); }
+                            writtenFiles.Add(writtenFile);
                         }
                         else
                         {
@@ -70,24 +96,9 @@ namespace Outrage.Verge.Processor
                     }
                 }
             }
-
-            CleanUpUnwrittenFiles();
-
-            CleanUpEmptyDirectories();
         }
 
-        private void ProcessHTMLPage(string pageName, PathBuilder pageFile)
-        {
-            var factory = this.processorFactory.Get(".html");
-            var pageProcessor = factory.BuildProcessor(pageFile, this.contentLibrary, this.interceptorFactory, this.variables);
-            var pageWriter = factory.BuildContentWriter();
-            var (writtenFile, contentStream) = pageWriter.Write(pageName, pageFile, outputPath);
-            using (contentStream) { pageProcessor.RenderToStream(contentStream); }
-            writtenFiles.Add(writtenFile);
-            
-        }
-
-        private void CleanUpUnwrittenFiles()
+        private void CleanUpUnwrittenFiles(HashSet<string> writtenFiles)
         {
             foreach (var file in this.outputPath.ListFiles(options: new EnumerationOptions { RecurseSubdirectories = true }))
             {

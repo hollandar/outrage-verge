@@ -1,25 +1,25 @@
 ﻿using Compose.Path;
-using Outrage.Verge.Library;
+using Outrage.Verge.Processor.Html;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Outrage.Verge.Processor.Html
+namespace Outrage.Verge.Processor.Markdown
 {
-    public class HtmlProcessorFactory : IProcessorFactory
+    public class MarkdownProcessorFactory : IProcessorFactory
     {
-        public string GetExtension() => ".html";
+        public string GetExtension() => ".md";
 
         public IProcessor BuildProcessor(PathBuilder pageFile, RenderContext renderContext)
         {
-            return new HtmlProcessor(pageFile, renderContext);
+            return new MarkdownProcessor(pageFile, renderContext);
         }
 
         public IContentWriter BuildContentWriter()
         {
-            return new HtmlWriter();
+            return new MarkdownWriter();
         }
     }
 }

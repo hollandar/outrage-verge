@@ -16,11 +16,12 @@ namespace Outrage.Verge.Library
     {
         PathBuilder rootPath;
 
-        Dictionary<string, IEnumerable<IToken>> htmlCache = new();
+        Dictionary<string, IEnumerable<IToken>> tokenCache = new();
+        Dictionary<string, string> contentCache = new();
 
         public ContentLibrary (string rootPath)
         {
-            this.rootPath = new PathBuilder(rootPath);
+            this.rootPath = PathBuilder.From(rootPath);
             if (!this.rootPath.IsDirectory)
             {
                 throw new ArgumentException($"The content library {rootPath} is expected to be a folder.");
@@ -29,7 +30,7 @@ namespace Outrage.Verge.Library
 
         public bool ContentExists(string fileName)
         {
-            if (htmlCache.ContainsKey(fileName))
+            if (contentCache.ContainsKey(fileName))
                 return true;
 
             var path = this.rootPath / fileName;
@@ -47,23 +48,41 @@ namespace Outrage.Verge.Library
         public IEnumerable<IToken> GetHtml(string filename)
         {
             var lowerFilename = filename.ToLower();
-            if (htmlCache.ContainsKey(lowerFilename))
+            if (contentCache.ContainsKey(lowerFilename))
             {
-                return htmlCache[lowerFilename];
+                return tokenCache[lowerFilename];
             }
 
             var path = this.rootPath / filename;
-            if (path.Extension != ".html")
-                throw new ArgumentException($"Content file {filename} is not Html.");
-
+            
             if (!path.IsFile)
                 throw new ArgumentException($"Content file {filename} does not exist.");
 
             var content = path.ReadToEnd();
             var tokens = HTMLParser.Parse(content);
-            this.htmlCache[lowerFilename] = tokens;
+            this.tokenCache[lowerFilename] = tokens;
 
             return tokens;
+
+        }
+        
+        public string GetString(string filename)
+        {
+            var lowerFilename = filename.ToLower();
+            if (contentCache.ContainsKey(lowerFilename))
+            {
+                return contentCache[lowerFilename];
+            }
+
+            var path = this.rootPath / filename;
+            
+            if (!path.IsFile)
+                throw new ArgumentException($"Content file {filename} does not exist.");
+
+            var content = path.ReadToEnd();
+            this.contentCache[lowerFilename] = content;
+
+            return content;
 
         }
 
