@@ -14,7 +14,7 @@ namespace Outrage.Verge.Processor
     public interface IInterceptor
     {
         string GetTag();
-        IEnumerable<IToken>? Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StringBuilder builder);
+        IEnumerable<IToken>? Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer);
     }
     public class InterceptorFactory
     {
@@ -23,7 +23,6 @@ namespace Outrage.Verge.Processor
 
         public InterceptorFactory(ContentLibrary contentLibrary, IServiceProvider? serviceProvider)
         {
-
             this.contentLibrary = contentLibrary;
             if (serviceProvider != null)
             {
@@ -44,13 +43,13 @@ namespace Outrage.Verge.Processor
             return this.interceptors.ContainsKey(tagName);
         }
 
-        public IEnumerable<IToken>? RenderInterceptor(OpenTagToken openTag, IEnumerable<IToken> tokens, StringBuilder builder)
+        public IEnumerable<IToken>? RenderInterceptor(OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             if (!IsDefined(openTag.NodeName))
                 throw new ArgumentException($"No interceptor is defined for {openTag.NodeName}.");
 
             var interceptor = this.interceptors[openTag.NodeName];
-            return interceptor.Render(openTag, tokens, builder);
+            return interceptor.Render(openTag, tokens, writer);
         }
     }
 }

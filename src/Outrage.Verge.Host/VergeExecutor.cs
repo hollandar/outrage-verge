@@ -9,6 +9,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Runtime.CompilerServices;
 using System.CommandLine;
+using Outrage.Verge.Processor.Html;
 
 namespace Outrage.Verge.Host;
 
@@ -76,6 +77,7 @@ public class VergeExecutor : IDisposable
             options.AddConsole();
         });
         services.AddSingleton<IInterceptor, HeadlineInterceptor>();
+        services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
 
         var serviceProvider = services.BuildServiceProvider();
         serveCommand.SetHandler((inputPathValue, outputPathValue) => {

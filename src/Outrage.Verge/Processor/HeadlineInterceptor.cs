@@ -13,7 +13,7 @@ namespace Outrage.Verge.Processor
     {
         public string GetTag() => "Headline";
 
-        public IEnumerable<IToken>? Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StringBuilder builder)
+        public IEnumerable<IToken>? Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             if (openTag.HasAttribute("headline"))
             {

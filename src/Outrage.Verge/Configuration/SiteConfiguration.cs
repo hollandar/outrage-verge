@@ -12,7 +12,7 @@ namespace Outrage.Verge.Configuration
         public string Theme { get; set; }
         public string ThemesPath { get; set; } = "themes";
         public string[] Copy { get; set; }
-        public string[] PagePaths { get; set; } = new string[] { "pages" };
+        public string[] PagePaths { get; set; } = new string[] { "content" };
         public string[] PageGlobs { get; set; } = new string[] { "**/*.html" };
     }
 }

@@ -21,7 +21,7 @@ namespace Outrage.Verge.Processor
         private readonly SiteConfiguration siteConfiguration;
         private readonly HashSet<string> writtenFiles = new();
         private readonly Variables variables;
-        static Regex htmlPageNameExpression = new Regex("^(?<name>.*?)[.]html$", RegexOptions.Compiled);
+        private readonly ProcessorFactory processorFactory;
 
         public SiteProcessor(string rootPath, string outputPath, IServiceProvider? serviceProvider)
         {
@@ -33,6 +33,7 @@ namespace Outrage.Verge.Processor
             this.siteConfiguration = this.contentLibrary.Deserialize<SiteConfiguration>("site");
             this.interceptorFactory = new InterceptorFactory(this.contentLibrary, serviceProvider);
             this.themesFactory = new ThemesFactory(this.contentLibrary, this.siteConfiguration.ThemesPath);
+            this.processorFactory = new ProcessorFactory(serviceProvider);
             this.outputPath = new PathBuilder(outputPath);
             this.outputPath.CreateDirectory();
 
@@ -77,22 +78,12 @@ namespace Outrage.Verge.Processor
 
         private void ProcessHTMLPage(string pageName, PathBuilder pageFile)
         {
-            if (pageName.EndsWith(".html") && pageName != "index.html")
-            {
-                var match = htmlPageNameExpression.Match(pageName);
-                if (match.Success)
-                {
-                    pageName = match.Groups["name"] + "/index.html";
-                }
-            }
-            var pageProcessor = new PageProcessor(pageFile, this.contentLibrary, this.interceptorFactory, this.variables);
-            var content = pageProcessor.Render();
-
-            var outputFile = this.outputPath / pageName;
-            var outputFolder = outputFile.GetDirectory();
-            if (!outputFolder.IsDirectory) outputFolder.CreateDirectory();
-            outputFile.Write(content);
-            writtenFiles.Add(pageName);
+            var factory = this.processorFactory.Get(".html");
+            var pageProcessor = factory.BuildProcessor(pageFile, this.contentLibrary, this.interceptorFactory, this.variables);
+            var pageWriter = factory.BuildContentWriter();
+            var (writtenFile, contentStream) = pageWriter.Write(pageName, pageFile, outputPath);
+            using (contentStream) { pageProcessor.RenderToStream(contentStream); }
+            writtenFiles.Add(writtenFile);
             
         }
 
@@ -100,8 +91,7 @@ namespace Outrage.Verge.Processor
         {
             foreach (var file in this.outputPath.ListFiles(options: new EnumerationOptions { RecurseSubdirectories = true }))
             {
-                var relative = file.GetRelativeTo(this.outputPath);
-                if (!writtenFiles.Contains(relative))
+                if (!writtenFiles.Contains(file))
                     file.Delete();
             }
         }
