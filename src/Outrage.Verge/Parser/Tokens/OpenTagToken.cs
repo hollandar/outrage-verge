@@ -1,4 +1,5 @@
 ﻿using Outrage.TokenParser;
+using Outrage.Verge.Processor;
 using System.Data.SqlTypes;
 using System.Text;
 
@@ -49,6 +50,26 @@ public class OpenTagToken : IToken
     public string GetAttributeValue(string name)
     {
         return GetAttributeValue<string>(name);
+    }
+
+    public string ToAttributedString(Variables variables)
+    {
+        var tagBuilder = new StringBuilder("<");
+        tagBuilder.Append(Name.Name);
+        if (Attributes?.Any() ?? false)
+        {
+            tagBuilder.Append(" ");
+            tagBuilder.Append(String.Join(" ", Attributes.Select(r => $"{r.AttributeName}=\"{variables.ReplaceVariables(r.AttributeValue)}\"")));
+        }
+
+        if (Closed)
+        {
+            tagBuilder.Append("/");
+        }
+
+        tagBuilder.Append(">");
+
+        return tagBuilder.ToString();
     }
 
     public override string ToString()

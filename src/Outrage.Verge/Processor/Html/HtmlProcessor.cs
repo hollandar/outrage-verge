@@ -169,7 +169,7 @@ namespace Outrage.Verge.Processor.Html
                     }
                     else
                     {
-                        writer.Write(openTagToken.ToString());
+                        writer.Write(openTagToken.ToAttributedString(renderContext.Variables));
                         skipSpace = true;
                         continue;
                     }
