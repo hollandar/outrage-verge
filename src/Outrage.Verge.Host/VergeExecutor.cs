@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.CommandLine;
 using Outrage.Verge.Processor.Html;
 using Outrage.Verge.Processor.Markdown;
+using Outrage.Verge.Processor.Interceptors;
 
 namespace Outrage.Verge.Host;
 
@@ -77,7 +78,11 @@ public class VergeExecutor : IDisposable
         {
             options.AddConsole();
         });
+        services.AddSingleton<IInterceptor, IncludeInterceptor>();
         services.AddSingleton<IInterceptor, HeadlineInterceptor>();
+        services.AddSingleton<IInterceptor, DefineInterceptor>();
+        services.AddSingleton<IInterceptor, JsonInterceptor>();
+        services.AddSingleton<IInterceptor, ForEachInterceptor>();
         services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
         services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
 

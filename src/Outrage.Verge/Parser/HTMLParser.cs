@@ -11,6 +11,12 @@ public static class HTMLParser
         Matcher.Some(
             Characters.AnyChar.Except(Matcher.Chars('\t', '\n', '\f', '>', '/', '\'', '"', '=', ' ')))
         .Convert((string value) => new HtmlIdentifierToken(value));
+    
+    public static IMatcher Variable =
+            Matcher.Char('$').Ignore()
+                .Then(Matcher.Char('(').Ignore())
+                .Then(Identifiers.Identifier.DelimitedBy(Characters.Period)).Wrap(match => new VariableToken(match.Tokens))
+                .Then(Matcher.Char(')').Ignore());
 
     public static IMatcher AttributeNameOnly = Identifier.Wrap((match) => new AttributeNameToken(match.Tokens))
         .Wrap((match) => new AttributeToken(match.Tokens));
@@ -58,6 +64,7 @@ public static class HTMLParser
             Script,
             OpenTag,
             CloseTag,
+            Variable,
             Characters.AnyChar
             )
             ).Then(Controls.EndOfFile);

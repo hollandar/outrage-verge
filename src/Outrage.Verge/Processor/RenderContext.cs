@@ -20,7 +20,7 @@ namespace Outrage.Verge.Processor
             ThemesFactory = new ThemesFactory(this.ContentLibrary, this.SiteConfiguration.ThemesPath);
             ProcessorFactory = new ProcessorFactory(serviceProvider);
 
-            var variables = new Dictionary<string, string>
+            var variables = new Dictionary<string, object>
             {
                 {"themeTemplate", ThemesFactory.GetThemeLayout(SiteConfiguration.Theme) },
                 {"themeBase", $"{SiteConfiguration.ThemesPath}/{SiteConfiguration.Theme}" }

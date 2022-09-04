@@ -7,13 +7,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Outrage.TokenParser.Tokens;
 
-namespace Outrage.Verge.Processor
+namespace Outrage.Verge.Processor.Interceptors
 {
     public class HeadlineInterceptor : IInterceptor
     {
         public string GetTag() => "Headline";
 
-        public IEnumerable<IToken>? Render(OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public IEnumerable<IToken>? Render(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             if (openTag.HasAttribute("headline"))
             {

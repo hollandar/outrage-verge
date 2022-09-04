@@ -18,8 +18,5 @@ namespace Outrage.Verge
 
         public static string TemplateLayoutAtt = "layout";
         public static string NameAtt = "name";
-
-        public static string IncludeTag = "Include";
-        public static string IncludeNameAtt = "name";
     }
 }

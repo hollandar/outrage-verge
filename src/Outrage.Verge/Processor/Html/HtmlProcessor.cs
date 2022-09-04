@@ -21,21 +21,32 @@ namespace Outrage.Verge.Processor.Html
 
         public HtmlProcessor(string contentName, IProcessor childPage, RenderContext renderContext) : base(renderContext, childPage)
         {
-            Process(contentName);
+            Load(contentName);
         }
 
         public HtmlProcessor(string contentName, RenderContext renderContext) : base(renderContext)
         {
-            Process(contentName);
+            Load(contentName);
         }
 
-        protected void Process(string contentName)
+        public HtmlProcessor(IEnumerable<IToken> tokens, RenderContext renderContext) : base(renderContext)
+        {
+            this.tokens = tokens;
+            Process();
+        }
+
+        public void Load(string contentName)
         {
             if (!renderContext.ContentLibrary.ContentExists(contentName))
                 throw new ArgumentException($"{contentName} is unknown.");
 
             tokens = renderContext.ContentLibrary.GetHtml(contentName);
 
+            Process();
+        }
+
+        protected void Process()
+        {
             var enumerator = new SpecialEnumerator<IToken>(tokens);
             while (enumerator.MoveNext())
             {
@@ -137,12 +148,6 @@ namespace Outrage.Verge.Processor.Html
                         childPage.RenderSection(openTagToken, writer);
                         continue;
                     }
-                    else if (openTagToken.NodeName == Constants.IncludeTag)
-                    {
-                        var contentName = openTagToken.GetAttributeValue(Constants.IncludeNameAtt);
-                        RenderInclude(contentName, writer);
-                        continue;
-                    }
                     else if (openTagToken.NodeName == Constants.DefineSectionTag)
                     {
                         enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == Constants.DefineSectionTag).ToList();
@@ -156,9 +161,9 @@ namespace Outrage.Verge.Processor.Html
                     {
                         var innerTokens = Enumerable.Empty<IToken>();
                         if (!openTagToken.Closed)
-                            tokens = enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == openTagToken.NodeName);
+                            tokens = enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == openTagToken.NodeName).ToList();
 
-                        var interceptorTokens = renderContext.InterceptorFactory.RenderInterceptor(openTagToken, tokens, writer);
+                        var interceptorTokens = renderContext.InterceptorFactory.RenderInterceptor(renderContext, openTagToken, tokens, writer);
                         if (interceptorTokens?.Any() ?? false)
                             RenderContent(interceptorTokens, writer);
                     }
@@ -177,16 +182,27 @@ namespace Outrage.Verge.Processor.Html
                     {
                         continue;
                     }
-                    else if (closeTagToken.NodeName == Constants.IncludeTag)
-                    {
-                        continue;
-                    }
                     else
                     {
                         writer.Write(closeTagToken.ToString());
                         skipSpace = true;
                         continue;
                     }
+                }
+
+                if (enumerator.Current is VariableToken)
+                {
+                    var variableToken = (VariableToken)enumerator.Current;
+                    var variableName = variableToken.VariableName;
+                    if (!String.IsNullOrEmpty(variableName) && renderContext.Variables.HasValue(variableName))
+                    {
+                        var value = this.renderContext.Variables.GetValue(variableName);
+                        writer.Write(value.ToString());
+                    } else
+                    {
+                        writer.Write(variableToken.ToString());
+                    }
+                    continue;
                 }
             }
         }
@@ -205,15 +221,6 @@ namespace Outrage.Verge.Processor.Html
 
             if (sectionExists)
                 RenderContent(sectionContent[sectionName], writer);
-        }
-
-        protected void RenderInclude(string contentName, StreamWriter writer)
-        {
-            if (!renderContext.ContentLibrary.ContentExists(contentName))
-                throw new ArgumentException($"No content with the name {contentName} exists.");
-
-            var pageProcessor = new HtmlProcessor(contentName, renderContext);
-            pageProcessor.RenderToStream(writer);
         }
 
         protected string HandleVariables(string input)
