@@ -83,6 +83,7 @@ public class VergeExecutor : IDisposable
         services.AddSingleton<IInterceptor, DefineInterceptor>();
         services.AddSingleton<IInterceptor, JsonInterceptor>();
         services.AddSingleton<IInterceptor, ForEachInterceptor>();
+        services.AddSingleton<IInterceptor, CSCodeInterceptor>();
         services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
         services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
 
@@ -153,8 +154,9 @@ public class VergeExecutor : IDisposable
             {
                 Thread.Sleep(500);
                 rebuildRequests = 0;
-
-                RebuildSite();
+                
+                var rebuildTask = RebuildSite();
+                Task.WaitAll(rebuildTask);
             }
             else
             {
@@ -164,7 +166,7 @@ public class VergeExecutor : IDisposable
         while (!exiting);
     }
 
-    public void RebuildSite()
+    public async Task RebuildSite()
     {
         using var scope = this.serviceProvider.CreateScope();
 
@@ -187,7 +189,7 @@ public class VergeExecutor : IDisposable
         stopwatch.Start();
         try
         {
-            siteProcessor.Process();
+            await siteProcessor.Process();
         }
         catch (Exception e)
         {

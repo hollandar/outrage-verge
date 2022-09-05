@@ -23,7 +23,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return "ForEach";
         }
 
-        public IEnumerable<IToken>? Render(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var name = openTag.GetAttributeValue<string>("name");
             var from = openTag.GetAttributeValue<string>("in");
@@ -45,7 +45,7 @@ namespace Outrage.Verge.Processor.Interceptors
                         variables.SetValue(name, enumerator.Current);
                         var nrc = renderContext.CreateChildContext(variables);
                         var processor = new HtmlProcessor(tokens, nrc);
-                        processor.RenderToStream(writer);
+                        await processor.RenderToStream(writer);
                     }
                 }
             }
@@ -54,7 +54,7 @@ namespace Outrage.Verge.Processor.Interceptors
                 throw new ArgumentException($"No variable with name {from} is defined.");
             }
 
-            return Enumerable.Empty<IToken>();
+            return null;
         }
     }
 }

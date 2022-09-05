@@ -16,13 +16,13 @@ namespace Outrage.Verge.Processor.Interceptors
             return "Include";
         }
 
-        public IEnumerable<IToken>? Render(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var contentName = renderContext.GetFallbackContent(openTag.GetAttributeValue<string>("name"));
             var pageProcessor = new HtmlProcessor(contentName, renderContext);
-            pageProcessor.RenderToStream(writer);
+            await pageProcessor.RenderToStream(writer);
 
-            return Enumerable.Empty<IToken>();
+            return null;
         }
     }
 }

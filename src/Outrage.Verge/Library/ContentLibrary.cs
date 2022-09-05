@@ -1,5 +1,6 @@
 ﻿using Compose.Path;
 using Compose.Serialize;
+using GlobExpressions;
 using Outrage.TokenParser;
 using Outrage.TokenParser.Tokens;
 using Outrage.Verge.Parser;
@@ -25,6 +26,16 @@ namespace Outrage.Verge.Library
             if (!this.rootPath.IsDirectory)
             {
                 throw new ArgumentException($"The content library {rootPath} is expected to be a folder.");
+            }
+        }
+
+        public IEnumerable<PathBuilder> GetContent(string globPattern)
+        {
+            var contentFiles = Glob.Files(this.rootPath, globPattern);
+            foreach (var contentFile in contentFiles)
+            {
+                var contentName = PathBuilder.From(contentFile).GetRelativeTo(this.rootPath);
+                yield return contentName;
             }
         }
 

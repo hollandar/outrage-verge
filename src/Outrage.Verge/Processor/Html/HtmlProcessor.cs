@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Outrage.Verge.Library;
+using System.Runtime.CompilerServices;
 
 namespace Outrage.Verge.Processor.Html
 {
@@ -78,32 +79,21 @@ namespace Outrage.Verge.Processor.Html
             sectionContent[sectionVariable].AddRange(tokens);
         }
 
-        protected void SetTemplate(OpenTagToken openToken)
-        {
-            var templateName = openToken.GetAttributeValue(Constants.TemplateLayoutAtt);
-            var templateVariable = HandleVariables(templateName);
-
-            if (layoutPage != null)
-                throw new ArgumentException("Template page can not be set twice, remove the second template tag.");
-            layoutPage = new HtmlProcessor(templateVariable, this, this.renderContext);
-        }
-
-        public override void RenderToStream(Stream stream)
+        public override async Task RenderToStream(Stream stream)
         {
             using var writer = new StreamWriter(stream);
-            RenderToStream(writer);
+            await RenderToStream(writer);
         }
 
-        public override void RenderToStream(StreamWriter stream)
+        public override async Task RenderToStream(StreamWriter stream)
         {
             if (layoutPage != null)
-                layoutPage.RenderToStream(stream);
+                await layoutPage.RenderToStream(stream);
             else
-                RenderContent(tokens, stream);
-
+                await RenderContentAsync(tokens, stream);
         }
 
-        protected void RenderContent(IEnumerable<IToken> tokens, StreamWriter writer)
+        protected async Task RenderContentAsync(IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var enumerator = new SpecialEnumerator<IToken>(tokens);
             while (enumerator.MoveNext())
@@ -140,7 +130,7 @@ namespace Outrage.Verge.Processor.Html
                     if (openTagToken.NodeName == Constants.SectionTag && childPage != null)
                     {
                         var sectionName = openTagToken.GetAttributeValue(Constants.SectionNameAtt);
-                        childPage.RenderSection(openTagToken, writer);
+                        await childPage.RenderSection(openTagToken, writer);
                         continue;
                     }
                     else if (openTagToken.NodeName == Constants.DefineSectionTag)
@@ -158,9 +148,9 @@ namespace Outrage.Verge.Processor.Html
                         if (!openTagToken.Closed)
                             tokens = enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == openTagToken.NodeName).ToList();
 
-                        var interceptorTokens = renderContext.InterceptorFactory.RenderInterceptor(renderContext, openTagToken, tokens, writer);
+                        var interceptorTokens = await renderContext.InterceptorFactory.RenderInterceptorAsync(renderContext, openTagToken, tokens, writer);
                         if (interceptorTokens?.Any() ?? false)
-                            RenderContent(interceptorTokens, writer);
+                            await RenderContentAsync(interceptorTokens, writer);
                     }
                     else
                     {
@@ -202,7 +192,7 @@ namespace Outrage.Verge.Processor.Html
             }
         }
 
-        public override void RenderSection(OpenTagToken openTag, StreamWriter writer)
+        public override async Task RenderSection(OpenTagToken openTag, StreamWriter writer)
         {
             var sectionName = openTag.GetAttributeValue(Constants.SectionNameAtt);
             var sectionExists = sectionContent.ContainsKey(sectionName);
@@ -215,7 +205,7 @@ namespace Outrage.Verge.Processor.Html
                 throw new ArgumentException($"A section with name {sectionName} has no content, but it was expected.");
 
             if (sectionExists)
-                RenderContent(sectionContent[sectionName], writer);
+                await RenderContentAsync(sectionContent[sectionName], writer);
         }
 
         protected string HandleVariables(string input)

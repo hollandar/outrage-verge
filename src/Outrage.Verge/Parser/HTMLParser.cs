@@ -53,15 +53,23 @@ public static class HTMLParser
 
     public static IMatcher Script = OpenTag.When(tokens =>
         tokens.OfType<OpenTagToken>().Single().Name.Name == "script"
-    ).Then(Matcher.Many(Characters.AnyChar.Except(Matcher.String("</script")))).Then(CloseTag).When(tokens =>
+    ).Then(Matcher.Many(Characters.AnyChar.Except(Matcher.String("</script>")))).Then(CloseTag).When(tokens =>
     {
         return tokens.OfType<CloseTagToken>().Single().NodeName == "script";
+    });
+
+    public static IMatcher Code = OpenTag.When(tokens =>
+        tokens.OfType<OpenTagToken>().Single().Name.Name == "Code"
+    ).Then(Matcher.Many(Characters.AnyChar.Except(Matcher.String("</Code>")))).Then(CloseTag).When(tokens =>
+    {
+        return tokens.OfType<CloseTagToken>().Single().NodeName == "Code";
     });
 
     public static IMatcher Content =
         Matcher.Many(
             Matcher.FirstOf(
             Script,
+            Code,
             OpenTag,
             CloseTag,
             Variable,

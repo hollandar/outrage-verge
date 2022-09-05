@@ -13,16 +13,22 @@ namespace Outrage.Verge.Processor.Interceptors
     {
         public string GetTag() => "Headline";
 
-        public IEnumerable<IToken>? Render(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             if (openTag.HasAttribute("headline"))
             {
                 var headline = openTag.GetAttributeValue("headline");
 
-                yield return new OpenTagToken("h1");
-                yield return new StringValueToken(headline);
-                yield return new CloseTagToken("h1");
+                IToken[] resultTokens = new IToken[] {
+                    new OpenTagToken("h1"),
+                    new StringValueToken(headline),
+                    new CloseTagToken("h1"),
+                };
+
+                return Task.FromResult<IEnumerable<IToken>?>(resultTokens);
             }
+
+            return Task.FromResult<IEnumerable<IToken>?>(null);
         }
     }
 }

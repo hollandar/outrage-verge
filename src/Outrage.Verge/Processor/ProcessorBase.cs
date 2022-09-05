@@ -31,9 +31,7 @@ namespace Outrage.Verge.Processor
         {
             var templateName = openToken.GetAttributeValue(Constants.TemplateLayoutAtt);
             var templateVariable = HandleVariables(templateName);
-            if (!renderContext.ContentLibrary.ContentExists(templateVariable))
-                throw new ArgumentException($"A layout with the name {templateVariable} does not exist.");
-
+            
             if (layoutPage != null)
                 throw new ArgumentException("Template page can not be set twice, remove the second template tag.");
 
@@ -45,10 +43,10 @@ namespace Outrage.Verge.Processor
             return renderContext.Variables.ReplaceVariables(input);
         }
 
-        public abstract void RenderToStream(Stream stream);
+        public abstract Task RenderToStream(Stream stream);
 
-        public abstract void RenderToStream(StreamWriter stream);
+        public abstract Task RenderToStream(StreamWriter stream);
 
-        public abstract void RenderSection(OpenTagToken openTag, StreamWriter writer);
+        public abstract Task RenderSection(OpenTagToken openTag, StreamWriter writer);
     }
 }

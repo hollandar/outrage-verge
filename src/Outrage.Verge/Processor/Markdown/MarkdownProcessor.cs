@@ -59,27 +59,28 @@ namespace Outrage.Verge.Processor.Markdown
             }
         }
 
-        public override void RenderToStream(Stream stream)
+        public override async Task RenderToStream(Stream stream)
         {
             using var writer = new StreamWriter(stream, Encoding.UTF8, 4096, true);
-            RenderToStream(writer);
+            await RenderToStream(writer);
         }
 
-        public override void RenderToStream(StreamWriter stream)
+        public override async Task RenderToStream(StreamWriter stream)
         {
             if (layoutPage != null)
-                layoutPage.RenderToStream(stream);
+                await layoutPage.RenderToStream(stream);
             else
-                RenderContent(content, stream);
+                await RenderContent(content, stream);
 
         }
 
-        protected void RenderContent(string content, StreamWriter writer)
+        protected Task RenderContent(string content, StreamWriter writer)
         {
             writer.Write(content);
+            return Task.CompletedTask;
         }
 
-        public override void RenderSection(OpenTagToken openTag, StreamWriter writer)
+        public override async Task RenderSection(OpenTagToken openTag, StreamWriter writer)
         {
             var sectionName = openTag.GetAttributeValue(Constants.SectionNameAtt);
             var sectionExists = this.sectionContent.ContainsKey(sectionName);
@@ -92,7 +93,7 @@ namespace Outrage.Verge.Processor.Markdown
                 throw new ArgumentException($"A section with name {sectionName} has no content, but it was expected.");
 
             if (sectionExists)
-                RenderContent(sectionContent[sectionName], writer);
+                await RenderContent(sectionContent[sectionName], writer);
         }
         
     }

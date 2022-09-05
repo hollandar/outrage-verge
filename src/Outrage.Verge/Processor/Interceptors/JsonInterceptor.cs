@@ -22,12 +22,11 @@ namespace Outrage.Verge.Processor.Interceptors
             return "Json";
         }
 
-        public IEnumerable<IToken>? Render(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var name = openTag.GetAttributeValue<string>("name");
             var from = openTag.GetAttributeValue<string>("from");
             var content = renderContext.ContentLibrary.GetString(from);
-            //var converter = new ExpandoObjectConverter();
 
             var model = JsonConvert.DeserializeObject<JObject>(content);
             if (openTag.Closed)
@@ -39,10 +38,10 @@ namespace Outrage.Verge.Processor.Interceptors
                 variables.SetValue(name, model);
                 var nrc = renderContext.CreateChildContext(variables);
                 var processor = new HtmlProcessor(tokens, nrc);
-                processor.RenderToStream(writer);
+                await processor.RenderToStream(writer);
             }
 
-            return Enumerable.Empty<IToken>();
+            return null;
         }
     }
 }

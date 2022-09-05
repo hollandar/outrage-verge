@@ -29,10 +29,10 @@ namespace Outrage.Verge.Processor
 
         }
 
-        public void Process()
+        public async Task Process()
         {
             HashSet<string> writtenFiles = new();
-            ProcessContentFiles(writtenFiles);
+            await ProcessContentFiles(writtenFiles);
             CopyFiles(writtenFiles);
             CleanUpUnwrittenFiles(writtenFiles);
 
@@ -67,7 +67,7 @@ namespace Outrage.Verge.Processor
             }
         }
 
-        private void ProcessContentFiles(HashSet<string> writtenFiles)
+        private async Task ProcessContentFiles(HashSet<string> writtenFiles)
         {
             foreach (var pagePathString in this.renderContext.SiteConfiguration.PagePaths)
             {
@@ -84,10 +84,12 @@ namespace Outrage.Verge.Processor
                         if (pageProcessorFactory != null)
                         {
                             var pageName = pageFile.GetRelativeTo(pagePath);
-                            var pageProcessor = pageProcessorFactory.BuildProcessor(contentName, this.renderContext);
+                            var contentUri = BuildUri(pageName);
+                            var pageRenderContext = this.renderContext.CreateChildContext(new Variables(("uri", contentUri)));
+                            var pageProcessor = pageProcessorFactory.BuildProcessor(contentName, pageRenderContext);
                             var pageWriter = pageProcessorFactory.BuildContentWriter();
                             var (writtenFile, contentStream) = pageWriter.Write(pageName, pageFile, outputPath);
-                            using (contentStream) { pageProcessor.RenderToStream(contentStream); }
+                            using (contentStream) { await pageProcessor.RenderToStream(contentStream); }
                             writtenFiles.Add(writtenFile);
                         }
                         else
@@ -97,6 +99,32 @@ namespace Outrage.Verge.Processor
                     }
                 }
             }
+        }
+
+        private string BuildUri(string contentName)
+        {
+            var uri = contentName;
+            if (uri.LastIndexOf(".") > -1)
+            {
+                uri = uri.Substring(0, uri.LastIndexOf('.'));
+            }
+
+            if (uri.EndsWith("index"))
+            {
+                uri = uri.Substring(0, uri.Length - 5);
+            }
+
+            if (uri.EndsWith("/"))
+            {
+                uri = uri.TrimEnd('/');
+            }
+
+            if (!uri.StartsWith('/'))
+            {
+                uri = "/" + uri;
+            }
+
+            return uri;
         }
 
         private void CleanUpUnwrittenFiles(HashSet<string> writtenFiles)
