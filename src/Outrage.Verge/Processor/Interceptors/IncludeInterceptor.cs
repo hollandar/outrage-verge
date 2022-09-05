@@ -18,10 +18,7 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public IEnumerable<IToken>? Render(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var contentName = openTag.GetAttributeValue<string>("name");
-            if (!renderContext.ContentLibrary.ContentExists(contentName))
-                throw new ArgumentException($"No content with the name {contentName} exists.");
-
+            var contentName = renderContext.GetFallbackContent(openTag.GetAttributeValue<string>("name"));
             var pageProcessor = new HtmlProcessor(contentName, renderContext);
             pageProcessor.RenderToStream(writer);
 

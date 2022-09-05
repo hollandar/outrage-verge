@@ -55,7 +55,7 @@ namespace Outrage.Verge.Processor.Markdown
                 this.sectionContent[frontmatter.HeadSection ?? defaultHeadName] = $"<title>{frontmatter.Title ?? defaultTitle}</title>";
 
 
-                SetTemplate(new OpenTagToken("Template", new AttributeToken("layout", HandleVariables(frontmatter.Template ?? defaultTemplateName))));
+                SetTemplate(new OpenTagToken("Template", new AttributeToken("layout", HandleVariables(renderContext.GetFallbackContent(frontmatter.Template ?? defaultTemplateName)))));
             }
         }
 

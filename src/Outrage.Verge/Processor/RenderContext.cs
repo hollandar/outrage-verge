@@ -12,11 +12,13 @@ namespace Outrage.Verge.Processor
 {
     public class RenderContext
     {
+        private readonly IDictionary<string, string> fallbackCache = new Dictionary<string, string>();
+
         public RenderContext(IServiceProvider serviceProvider, PathBuilder rootPath)
         {
             ContentLibrary = new ContentLibrary(rootPath);
-            InterceptorFactory = new InterceptorFactory(this.ContentLibrary, serviceProvider);
             SiteConfiguration = this.ContentLibrary.Deserialize<SiteConfiguration>("site");
+            InterceptorFactory = new InterceptorFactory(this.ContentLibrary, serviceProvider);
             ThemesFactory = new ThemesFactory(this.ContentLibrary, this.SiteConfiguration.ThemesPath);
             ProcessorFactory = new ProcessorFactory(serviceProvider);
 
@@ -64,5 +66,37 @@ namespace Outrage.Verge.Processor
         public ProcessorFactory ProcessorFactory { get; set; }
         public ThemesFactory ThemesFactory { get; set; }
         public Variables Variables { get; set; }
+
+        public string GetFallbackContent(string contentName)
+        {
+            var contentTarget = String.Empty;
+            if (this.fallbackCache.TryGetValue(contentName, out contentTarget))
+            {
+                return contentTarget;
+            }
+
+            contentTarget = contentName;
+
+            if (!this.ContentLibrary.ContentExists(contentTarget))
+            {
+                
+                foreach (var fallback in this.SiteConfiguration.LocationFallbacks)
+                {
+                    var fallbackContentName = this.Variables.ReplaceVariables($"{fallback}/{contentName}");
+
+                    if (this.ContentLibrary.ContentExists(fallbackContentName))
+                    {
+                        contentTarget = fallbackContentName;
+                        break;
+                    }
+                }
+            }
+
+            if (!this.ContentLibrary.ContentExists(contentTarget))
+                throw new ArgumentException($"No content with the name {contentName} was found in the site, or in the fallbacks.");
+
+            this.fallbackCache[contentName] = contentTarget;
+            return contentTarget;
+        }
     }
 }

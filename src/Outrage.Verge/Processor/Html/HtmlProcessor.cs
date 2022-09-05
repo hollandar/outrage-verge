@@ -37,9 +37,7 @@ namespace Outrage.Verge.Processor.Html
 
         public void Load(string contentName)
         {
-            if (!renderContext.ContentLibrary.ContentExists(contentName))
-                throw new ArgumentException($"{contentName} is unknown.");
-
+            contentName = this.renderContext.GetFallbackContent(contentName);
             tokens = renderContext.ContentLibrary.GetHtml(contentName);
 
             Process();
@@ -84,18 +82,15 @@ namespace Outrage.Verge.Processor.Html
         {
             var templateName = openToken.GetAttributeValue(Constants.TemplateLayoutAtt);
             var templateVariable = HandleVariables(templateName);
-            if (!renderContext.ContentLibrary.ContentExists(templateVariable))
-                throw new ArgumentException($"A layout with the name {templateVariable} does not exist.");
 
             if (layoutPage != null)
                 throw new ArgumentException("Template page can not be set twice, remove the second template tag.");
-
             layoutPage = new HtmlProcessor(templateVariable, this, this.renderContext);
         }
 
         public override void RenderToStream(Stream stream)
         {
-            using var writer = new StreamWriter(stream, Encoding.UTF8, 4096, true);
+            using var writer = new StreamWriter(stream);
             RenderToStream(writer);
         }
 

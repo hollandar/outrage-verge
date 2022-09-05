@@ -79,11 +79,12 @@ namespace Outrage.Verge.Processor
                     foreach (var pageFileString in pageFiles)
                     {
                         var pageFile = pagePath / pageFileString;
+                        var contentName = pageFile.GetRelativeTo(rootPath);
                         var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(pageFile.Extension);
                         if (pageProcessorFactory != null)
                         {
                             var pageName = pageFile.GetRelativeTo(pagePath);
-                            var pageProcessor = pageProcessorFactory.BuildProcessor(pageFile, this.renderContext);
+                            var pageProcessor = pageProcessorFactory.BuildProcessor(contentName, this.renderContext);
                             var pageWriter = pageProcessorFactory.BuildContentWriter();
                             var (writtenFile, contentStream) = pageWriter.Write(pageName, pageFile, outputPath);
                             using (contentStream) { pageProcessor.RenderToStream(contentStream); }

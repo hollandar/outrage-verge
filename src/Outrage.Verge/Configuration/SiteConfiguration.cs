@@ -16,6 +16,11 @@ namespace Outrage.Verge.Configuration
         public ICollection<string> PagePaths { get; set; } = new string[] { "content" };
         public ICollection<string> PageGlobs { get; set; } = new string[] { "**/*.html" };
         public ICollection<VariableItem> Variables { get; set; }
+        public ICollection<string> LocationFallbacks { get; set; } = new string[]
+        {
+            "$(themeBase)",
+            "base"
+        };
     }
 
     public class CopyItem
