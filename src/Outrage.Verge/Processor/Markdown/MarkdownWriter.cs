@@ -18,7 +18,7 @@ namespace Outrage.Verge.Processor.Markdown
             this.renderContext = renderContext;
         }
 
-        public override Stream Write(string pageName, PathBuilder pagePath, PathBuilder outputPath)
+        public override async Task<Stream> Write(ContentName pageName, PathBuilder pagePath, PathBuilder outputPath)
         {
             var match = htmlPageNameExpression.Match(pageName);
             if (match.Success)
@@ -29,6 +29,7 @@ namespace Outrage.Verge.Processor.Markdown
                     pageName = match.Groups["name"] + "/index.html";
 
 
+                await renderContext.NotifyContentGenerators(renderContext, BuildUri(pageName), pageName);
                 var fileStream = this.renderContext.PublishLibrary.OpenStream(pageName);
 
                 return fileStream;

@@ -133,6 +133,11 @@ namespace Outrage.Verge.Library
             return outputSizes;
         }
 
+        public DateTimeOffset GetLastModified(ContentName contentName)
+        {
+            var contentFile = this.publishPath / contentName;
+            return contentFile.GetLastModified();
+        }
 
         public void CleanUp()
         {

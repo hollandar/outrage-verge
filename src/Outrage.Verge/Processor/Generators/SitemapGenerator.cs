@@ -9,12 +9,19 @@ using System.Xml.Linq;
 
 namespace Outrage.Verge.Processor.Generators
 {
+    struct ContentItem
+    {
+        public string contentUri;
+        public ContentName contentName;
+    }
+
     public class SitemapGenerator : IContentGenerator
     {
-        public List<string> locations = new();
+        private List<ContentItem> locations = new();
+
         public Task ContentUpdated(RenderContext renderContext, string contentUri, ContentName contentName)
         {
-            locations.Add(contentUri);
+            locations.Add(new ContentItem { contentUri = contentUri, contentName = contentName });
             return Task.CompletedTask;
         }
 
@@ -26,8 +33,9 @@ namespace Outrage.Verge.Processor.Generators
 
             foreach (var location in locations)
             {
-                var locElement = new XElement(XName.Get("loc", xmlns), new XText($"{uriName}{location}"));
-                var lastmodElement = new XElement(XName.Get("lastmod", xmlns), new XText(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss+00:00")));
+                var locElement = new XElement(XName.Get("loc", xmlns), new XText($"{uriName}{location.contentUri}"));
+                var lastModified = renderContext.PublishLibrary.GetLastModified(location.contentName);
+                var lastmodElement = new XElement(XName.Get("lastmod", xmlns), new XText(lastModified.ToString("yyyy-MM-ddTHH:mm:sszzz")));
                 var sitemapElement = new XElement(XName.Get("sitemap", xmlns), locElement, lastmodElement);
                 xmlDocument.Root!.Add(sitemapElement);
             }

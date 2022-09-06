@@ -1,4 +1,5 @@
 ﻿using Compose.Path;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualBasic;
 using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
@@ -14,8 +15,9 @@ namespace Outrage.Verge.Processor
     public class RenderContext
     {
         private readonly IDictionary<ContentName, ContentName> fallbackCache = new Dictionary<ContentName, ContentName>();
+        private readonly IEnumerable<IContentGenerator>? contentGenerators;
 
-        public RenderContext(IServiceProvider serviceProvider, PathBuilder rootPath, PathBuilder publishPath)
+        public RenderContext(IServiceProvider serviceProvider, PathBuilder rootPath, PathBuilder publishPath, IEnumerable<IContentGenerator>? contentGenerators)
         {
             PublishLibrary = new PublishLibrary(publishPath);
             ContentLibrary = new ContentLibrary(rootPath);
@@ -36,10 +38,11 @@ namespace Outrage.Verge.Processor
             }
 
             Variables = new Variables(variables);
+            this.contentGenerators = contentGenerators;
         }
 
         private RenderContext(ContentLibrary contentLibrary, PublishLibrary publishLibrary, InterceptorFactory interceptorFactory, SiteConfiguration siteConfiguration, ThemesFactory themesFactory,
-            ProcessorFactory processorFactory, Variables variables)
+            ProcessorFactory processorFactory, Variables variables, IEnumerable<IContentGenerator>? contentGenerators)
         {
             ContentLibrary = contentLibrary;
             PublishLibrary = publishLibrary;
@@ -48,6 +51,7 @@ namespace Outrage.Verge.Processor
             ThemesFactory = themesFactory;
             ProcessorFactory = processorFactory;
             Variables = variables;
+            this.contentGenerators = contentGenerators;
         }
 
         public RenderContext CreateChildContext(Variables? variables = null)
@@ -58,7 +62,8 @@ namespace Outrage.Verge.Processor
                 SiteConfiguration,
                 ThemesFactory,
                 ProcessorFactory,
-                Variables.Combine(variables)
+                Variables.Combine(variables),
+                contentGenerators
             );
             return renderContext;
         }
@@ -71,6 +76,14 @@ namespace Outrage.Verge.Processor
         public ThemesFactory ThemesFactory { get; set; }
         public Variables Variables { get; set; }
 
+        public async Task NotifyContentGenerators(RenderContext renderContext, string contentUri, ContentName contentName)
+        {
+            if (contentGenerators != null) foreach (var generator in contentGenerators)
+                {
+                    await generator.ContentUpdated(renderContext, contentUri, contentName);
+                }
+        }
+        
         public ContentName GetFallbackContent(ContentName contentName)
         {
             var contentTarget = ContentName.Empty;

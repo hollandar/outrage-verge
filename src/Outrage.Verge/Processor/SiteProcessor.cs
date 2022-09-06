@@ -26,16 +26,8 @@ namespace Outrage.Verge.Processor
                 throw new ArgumentException($"{rootPath} was not found.");
 
             this.publishPath = PathBuilder.From(outputPath);
-            this.renderContext = new RenderContext(serviceProvider, rootPath, publishPath);
             this.contentGenerators = serviceProvider.GetService<IEnumerable<IContentGenerator>>();
-        }
-
-        private async Task NotifyContentGenerators(RenderContext renderContext, string contentUri, ContentName contentName)
-        {
-            if (contentGenerators != null) foreach (var generator in contentGenerators)
-                {
-                    await generator.ContentUpdated(renderContext, contentUri, contentName);
-                }
+            this.renderContext = new RenderContext(serviceProvider, rootPath, publishPath, contentGenerators);
         }
 
         public async Task Process()
@@ -81,15 +73,14 @@ namespace Outrage.Verge.Processor
                         var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(pageFile.Extension);
                         if (pageProcessorFactory != null)
                         {
-                            var pageName = pageFile.GetRelativeTo(pagePath);
+                            var pageName = ContentName.GetContentNameFromRelativePaths(pageFile, pagePath);
                             var pageRenderContext = this.renderContext.CreateChildContext();
                             var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
                             var contentUri = pageWriter.BuildUri(contentName);
                             pageRenderContext.Variables.SetValue("uri", contentUri);
                             var pageProcessor = pageProcessorFactory.BuildProcessor(contentName, pageRenderContext);
-                            var contentStream = pageWriter.Write(pageName, pageFile, publishPath);
+                            var contentStream = await pageWriter.Write(pageName, pageFile, publishPath);
                             using (contentStream) { await pageProcessor.RenderToStream(contentStream); }
-                            await NotifyContentGenerators(pageRenderContext, contentUri, contentName);
                         }
                         else
                         {

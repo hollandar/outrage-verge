@@ -10,7 +10,7 @@ namespace Outrage.Verge.Processor
 {
     public interface IContentWriter
     {
-        Stream Write(string pageName, PathBuilder pagePath, PathBuilder outputPath);
+        Task<Stream> Write(ContentName pageName, PathBuilder pagePath, PathBuilder outputPath);
         string BuildUri(ContentName pageName);
     }
 }

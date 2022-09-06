@@ -19,9 +19,9 @@ namespace Outrage.Verge.Processor.Html
             this.renderContext = renderContext;
         }
 
-        public override Stream Write(string pageName, PathBuilder pagePath, PathBuilder outputPath)
+        public override async Task<Stream> Write(ContentName pageName, PathBuilder pagePath, PathBuilder outputPath)
         {
-            if (pageName.EndsWith(".html") && pageName != "index.html")
+            if (pageName.Value.EndsWith(".html") && pageName != "index.html")
             {
                 var match = htmlPageNameExpression.Match(pageName);
                 if (match.Success)
@@ -30,6 +30,7 @@ namespace Outrage.Verge.Processor.Html
                 }
             }
 
+            await renderContext.NotifyContentGenerators(renderContext, BuildUri(pageName), pageName);
             var fileStream = this.renderContext.PublishLibrary.OpenStream(pageName);
             return fileStream;
         }

@@ -12,16 +12,19 @@ namespace Outrage.Verge.Library
     public class PublishStream : Stream
     {
         private readonly string path;
+        private MemoryStream innerStream;
+        private byte[] underlyingChecksum = emptyChecksum;
         static SHA1 sha1 = SHA1.Create();
-        MemoryStream innerStream;
-        private byte[] underlyingChecksum;
-
+        static byte[] emptyChecksum = Enumerable.Repeat((byte)0, 20).ToArray();
         public PublishStream(string path)
         {
             innerStream = new MemoryStream();
             this.path = path;
-            using var underlyingStream = new FileStream(path, FileMode.Open, FileAccess.Read);
-            underlyingChecksum = sha1.ComputeHash(underlyingStream);
+            if (File.Exists(path))
+            {
+                using var underlyingStream = new FileStream(path, FileMode.Open, FileAccess.Read);
+                underlyingChecksum = sha1.ComputeHash(underlyingStream);
+            }
         }
 
         public override bool CanRead => innerStream.CanRead;
