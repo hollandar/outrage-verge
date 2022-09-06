@@ -46,7 +46,7 @@ namespace Outrage.Verge.Library
         public StreamWriter OpenWriter(string publishName)
         {
             var fileName = GetFilename(publishName);
-            var writeStream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+            var writeStream = new PublishStream(fileName);
             writtenFiles.Add(fileName);
             return new StreamWriter(writeStream);
         }
@@ -54,7 +54,7 @@ namespace Outrage.Verge.Library
         public Stream OpenStream(string publishName)
         {
             var fileName = GetFilename(publishName);
-            var writeStream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+            var writeStream = new PublishStream(fileName);
             writtenFiles.Add(fileName);
 
             return writeStream;

@@ -1,5 +1,6 @@
 ﻿using Compose.Path;
 using GlobExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
 using System;
@@ -16,6 +17,7 @@ namespace Outrage.Verge.Processor
         private readonly PathBuilder rootPath;
         private readonly PathBuilder publishPath;
         private readonly RenderContext renderContext;
+        private readonly IEnumerable<IContentGenerator>? contentGenerators;
 
         public SiteProcessor(string rootPath, string outputPath, IServiceProvider serviceProvider)
         {
@@ -25,13 +27,26 @@ namespace Outrage.Verge.Processor
 
             this.publishPath = PathBuilder.From(outputPath);
             this.renderContext = new RenderContext(serviceProvider, rootPath, publishPath);
+            this.contentGenerators = serviceProvider.GetService<IEnumerable<IContentGenerator>>();
+        }
 
+        private async Task NotifyContentGenerators(RenderContext renderContext, string contentUri, ContentName contentName)
+        {
+            if (contentGenerators != null) foreach (var generator in contentGenerators)
+                {
+                    await generator.ContentUpdated(renderContext, contentUri, contentName);
+                }
         }
 
         public async Task Process()
         {
             await CopyContentFiles();
             await BuildContent();
+            if (contentGenerators != null) foreach (var generator in contentGenerators)
+            {
+                await generator.Finalize(renderContext);
+            }
+
             this.renderContext.PublishLibrary.CleanUp();
         }
 
@@ -74,6 +89,7 @@ namespace Outrage.Verge.Processor
                             var pageProcessor = pageProcessorFactory.BuildProcessor(contentName, pageRenderContext);
                             var contentStream = pageWriter.Write(pageName, pageFile, publishPath);
                             using (contentStream) { await pageProcessor.RenderToStream(contentStream); }
+                            await NotifyContentGenerators(pageRenderContext, contentUri, contentName);
                         }
                         else
                         {

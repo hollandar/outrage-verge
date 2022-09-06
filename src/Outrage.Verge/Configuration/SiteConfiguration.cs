@@ -9,6 +9,7 @@ namespace Outrage.Verge.Configuration
 {
     public class SiteConfiguration
     {
+        public string UriName { get; set; }
         public string Name { get; set; }
         public string Theme { get; set; }
         public string ThemesPath { get; set; } = "themes";
