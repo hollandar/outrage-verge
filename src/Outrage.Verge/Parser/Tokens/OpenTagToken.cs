@@ -16,11 +16,11 @@ public class OpenTagToken : IToken
     public OpenTagToken(string tag, bool closed, params AttributeToken[] attributes)
     {
         this.Name = new HtmlIdentifierToken(tag);
-        this.Attributes = attributes;
+        this.Attributes = attributes.Where(a => a != null);
         this.Closed = closed;
     }
 
-    public OpenTagToken(string tag, params AttributeToken[] attributes): this(tag, false, attributes)
+    public OpenTagToken(string tag, params AttributeToken?[] attributes): this(tag, false, attributes)
     {
 
     }
@@ -45,6 +45,12 @@ public class OpenTagToken : IToken
         var underlying = Nullable.GetUnderlyingType(typeof(TAs));
         var newValue = Convert.ChangeType(attribute.AttributeValue, underlying ?? typeof(TAs));
         return (TAs)newValue;
+    }
+
+    public AttributeToken? GetAttribute(string name)
+    {
+        var attribute = this.Attributes?.Where(r => r.AttributeName == name).FirstOrDefault();
+        return attribute;
     }
 
     public string GetAttributeValue(string name)

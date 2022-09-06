@@ -46,12 +46,15 @@ namespace Outrage.Verge.Processor
 
         }
 
-        public Variables Combine(Variables variables)
+        public Variables Combine(Variables? variables)
         {
             var result = new Variables(this.values);
-            foreach (var variable in variables.values)
+            if (variables != null)
             {
-                result.values.TryAdd(variable.Key, variable.Value);
+                foreach (var variable in variables.values)
+                {
+                    result.values.TryAdd(variable.Key, variable.Value);
+                }
             }
 
             return result;

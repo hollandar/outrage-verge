@@ -12,14 +12,14 @@ namespace Outrage.Verge.Processor.Html
     {
         public string GetExtension() => ".html";
 
-        public IProcessor BuildProcessor(PathBuilder pageFile, RenderContext renderContext)
+        public IProcessor BuildProcessor(ContentName pageFile, RenderContext renderContext)
         {
             return new HtmlProcessor(pageFile, renderContext);
         }
 
-        public IContentWriter BuildContentWriter()
+        public IContentWriter BuildContentWriter(RenderContext renderContext)
         {
-            return new HtmlWriter();
+            return new HtmlWriter(renderContext);
         }
     }
 }

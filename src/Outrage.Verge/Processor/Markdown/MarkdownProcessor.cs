@@ -12,6 +12,7 @@ using Compose.Serialize;
 using System.IO;
 using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization;
+using Outrage.Verge.Library;
 
 namespace Outrage.Verge.Processor.Markdown
 {
@@ -26,12 +27,12 @@ namespace Outrage.Verge.Processor.Markdown
         private string content;
         private FrontmatterConfig frontmatter;
 
-        public MarkdownProcessor(string contentName, RenderContext renderContext):base(renderContext)
+        public MarkdownProcessor(ContentName contentName, RenderContext renderContext):base(renderContext)
         {
             Process(contentName);
         }
 
-        protected void Process(string contentName)
+        protected void Process(ContentName contentName)
         {
             if (!renderContext.ContentLibrary.ContentExists(contentName))
                 throw new ArgumentException($"{contentName} is unknown.");

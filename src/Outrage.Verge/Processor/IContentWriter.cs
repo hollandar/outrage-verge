@@ -1,4 +1,5 @@
 ﻿using Compose.Path;
+using Outrage.Verge.Library;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace Outrage.Verge.Processor
 {
     public interface IContentWriter
     {
-        (string, Stream) Write(string pageName, PathBuilder pagePath, PathBuilder outputPath);
+        Stream Write(string pageName, PathBuilder pagePath, PathBuilder outputPath);
+        string BuildUri(ContentName pageName);
     }
 }

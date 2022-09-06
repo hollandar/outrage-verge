@@ -20,12 +20,12 @@ namespace Outrage.Verge.Processor.Html
         private bool skipSpace = true;
         private char lastWritten = char.MinValue;
 
-        public HtmlProcessor(string contentName, IProcessor childPage, RenderContext renderContext) : base(renderContext, childPage)
+        public HtmlProcessor(ContentName contentName, IProcessor childPage, RenderContext renderContext) : base(renderContext, childPage)
         {
             Load(contentName);
         }
 
-        public HtmlProcessor(string contentName, RenderContext renderContext) : base(renderContext)
+        public HtmlProcessor(ContentName contentName, RenderContext renderContext) : base(renderContext)
         {
             Load(contentName);
         }
@@ -36,7 +36,7 @@ namespace Outrage.Verge.Processor.Html
             Process();
         }
 
-        public void Load(string contentName)
+        public void Load(ContentName contentName)
         {
             contentName = this.renderContext.GetFallbackContent(contentName);
             tokens = renderContext.ContentLibrary.GetHtml(contentName);

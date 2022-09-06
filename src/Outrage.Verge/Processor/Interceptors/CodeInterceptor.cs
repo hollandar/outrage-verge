@@ -6,6 +6,7 @@ using Outrage.Verge.Parser.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +17,12 @@ namespace Outrage.Verge.Processor.Interceptors
     {
         public RenderContext RenderContext { get; set; }
         public IDictionary<string, string> Params { get; set; }
+        public List<IToken> EmitTokens { get; set; } = new List<IToken>();
+
+        public void Emit(params IToken[] tokens)
+        {
+            EmitTokens.AddRange(tokens);
+        }
     }
 
     public class CSCodeInterceptor : IInterceptor
@@ -39,7 +46,16 @@ namespace Outrage.Verge.Processor.Interceptors
 
             Script<object>? script = null;
             if (!compilationCache.TryGetValue(shaBase64, out script)) {
-                var scriptOptions = ScriptOptions.Default.WithImports("Outrage.Verge", "System").WithReferences(this.GetType().Assembly);
+                var scriptOptions = ScriptOptions.Default.WithImports(
+                        "Outrage.Verge", 
+                        "Outrage.Verge.Parser.Tokens", 
+                        "Outrage.TokenParser.Tokens", 
+                        "System"
+                    )
+                    .WithReferences(
+                        this.GetType().Assembly,
+                        typeof(StringValueToken).Assembly
+                    );
                 script = CSharpScript.Create(codeBuilder.ToString(), scriptOptions, globalsType: typeof(ScriptGlobals));
                 compilationCache[shaBase64] = script;
             }
@@ -47,14 +63,21 @@ namespace Outrage.Verge.Processor.Interceptors
             if (script != null)
             {
                 var parameters = openTag.Attributes.ToDictionary(r => r.AttributeName, r => renderContext.Variables.ReplaceVariables(r.AttributeValue));
-                var scriptState = await script.RunAsync(new ScriptGlobals
+                var scriptGlobals = new ScriptGlobals
                 {
                     RenderContext = renderContext,
                     Params = parameters
-                });
+                };
+
+                var scriptState = await script.RunAsync(scriptGlobals);
 
                 if (scriptState.Exception != null)
                     throw scriptState.Exception;
+
+                if (scriptGlobals.EmitTokens?.Any() ?? false)
+                {
+                    return scriptGlobals.EmitTokens;
+                }
             }
             else
             {

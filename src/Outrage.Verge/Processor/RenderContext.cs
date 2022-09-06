@@ -13,10 +13,11 @@ namespace Outrage.Verge.Processor
 {
     public class RenderContext
     {
-        private readonly IDictionary<string, string> fallbackCache = new Dictionary<string, string>();
+        private readonly IDictionary<ContentName, ContentName> fallbackCache = new Dictionary<ContentName, ContentName>();
 
-        public RenderContext(IServiceProvider serviceProvider, PathBuilder rootPath)
+        public RenderContext(IServiceProvider serviceProvider, PathBuilder rootPath, PathBuilder publishPath)
         {
+            PublishLibrary = new PublishLibrary(publishPath);
             ContentLibrary = new ContentLibrary(rootPath);
             SiteConfiguration = this.ContentLibrary.Deserialize<SiteConfiguration>("site");
             InterceptorFactory = new InterceptorFactory(this.ContentLibrary, serviceProvider);
@@ -37,10 +38,11 @@ namespace Outrage.Verge.Processor
             Variables = new Variables(variables);
         }
 
-        private RenderContext(ContentLibrary contentLibrary, InterceptorFactory interceptorFactory, SiteConfiguration siteConfiguration, ThemesFactory themesFactory,
+        private RenderContext(ContentLibrary contentLibrary, PublishLibrary publishLibrary, InterceptorFactory interceptorFactory, SiteConfiguration siteConfiguration, ThemesFactory themesFactory,
             ProcessorFactory processorFactory, Variables variables)
         {
             ContentLibrary = contentLibrary;
+            PublishLibrary = publishLibrary;
             InterceptorFactory = interceptorFactory;
             SiteConfiguration = siteConfiguration;
             ThemesFactory = themesFactory;
@@ -48,9 +50,10 @@ namespace Outrage.Verge.Processor
             Variables = variables;
         }
 
-        public RenderContext CreateChildContext(Variables variables)
+        public RenderContext CreateChildContext(Variables? variables = null)
         {
             var renderContext = new RenderContext(ContentLibrary,
+                PublishLibrary,
                 InterceptorFactory,
                 SiteConfiguration,
                 ThemesFactory,
@@ -61,15 +64,16 @@ namespace Outrage.Verge.Processor
         }
 
         public SiteConfiguration SiteConfiguration { get; set; }
+        public PublishLibrary PublishLibrary { get; set; }
         public ContentLibrary ContentLibrary { get; set; }
         public InterceptorFactory InterceptorFactory { get; set; }
         public ProcessorFactory ProcessorFactory { get; set; }
         public ThemesFactory ThemesFactory { get; set; }
         public Variables Variables { get; set; }
 
-        public string GetFallbackContent(string contentName)
+        public ContentName GetFallbackContent(ContentName contentName)
         {
-            var contentTarget = String.Empty;
+            var contentTarget = ContentName.Empty;
             if (this.fallbackCache.TryGetValue(contentName, out contentTarget))
             {
                 return contentTarget;

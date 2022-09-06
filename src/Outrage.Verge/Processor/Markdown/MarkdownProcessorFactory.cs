@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Outrage.Verge.Library;
 
 namespace Outrage.Verge.Processor.Markdown
 {
@@ -12,14 +13,14 @@ namespace Outrage.Verge.Processor.Markdown
     {
         public string GetExtension() => ".md";
 
-        public IProcessor BuildProcessor(PathBuilder pageFile, RenderContext renderContext)
+        public IProcessor BuildProcessor(ContentName pageFile, RenderContext renderContext)
         {
             return new MarkdownProcessor(pageFile, renderContext);
         }
 
-        public IContentWriter BuildContentWriter()
+        public IContentWriter BuildContentWriter(RenderContext renderContext)
         {
-            return new MarkdownWriter();
+            return new MarkdownWriter(renderContext);
         }
     }
 }

@@ -29,19 +29,17 @@ namespace Outrage.Verge.Library
             }
         }
 
-        public IEnumerable<PathBuilder> GetContent(string globPattern)
+        public IEnumerable<string> GetContent(string globPattern, ContentName? contentFolder = null)
         {
-            var contentFiles = Glob.Files(this.rootPath, globPattern);
-            foreach (var contentFile in contentFiles)
-            {
-                var contentName = PathBuilder.From(contentFile).GetRelativeTo(this.rootPath);
-                yield return contentName;
-            }
+            var contentDirectory = this.rootPath / contentFolder;
+
+            var contentFiles = Glob.Files(contentDirectory, globPattern);
+            return contentFiles;
         }
 
-        public bool ContentExists(string fileName)
+        public bool ContentExists(ContentName fileName)
         {
-            if (contentCache.ContainsKey(fileName))
+            if (contentCache.ContainsKey(fileName.Standardized))
                 return true;
 
             var path = this.rootPath / fileName;
@@ -49,16 +47,16 @@ namespace Outrage.Verge.Library
             return path.IsFile;
         }
 
-        public bool FolderExists(string folderName)
+        public bool FolderExists(ContentName folderName)
         {
             var path = this.rootPath / folderName;
 
             return path.IsDirectory;
         }
 
-        public IEnumerable<IToken> GetHtml(string filename)
+        public IEnumerable<IToken> GetHtml(ContentName filename)
         {
-            var lowerFilename = filename.ToLower();
+            var lowerFilename = filename.Standardized;
             if (contentCache.ContainsKey(lowerFilename))
             {
                 return tokenCache[lowerFilename];
@@ -77,9 +75,9 @@ namespace Outrage.Verge.Library
 
         }
         
-        public string GetString(string filename)
+        public string GetString(ContentName filename)
         {
-            var lowerFilename = filename.ToLower();
+            var lowerFilename = filename.Standardized;
             if (contentCache.ContainsKey(lowerFilename))
             {
                 return contentCache[lowerFilename];
@@ -97,7 +95,18 @@ namespace Outrage.Verge.Library
 
         }
 
-        public TType Deserialize<TType>(string filename) where TType: new()
+        public Stream OpenStream(ContentName filename)
+        {
+            var path = this.rootPath / filename;
+
+            if (!path.IsFile)
+                throw new ArgumentException($"Content file {filename} does not exist.");
+
+            return new FileStream(path, FileMode.Open, FileAccess.Read);
+
+        }
+
+        public TType Deserialize<TType>(ContentName filename) where TType: new()
         {
             var path = this.rootPath / filename;
 

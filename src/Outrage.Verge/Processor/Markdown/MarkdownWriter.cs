@@ -1,4 +1,5 @@
 ﻿using Compose.Path;
+using Outrage.Verge.Library;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,11 +9,16 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor.Markdown
 {
-    internal class MarkdownWriter : IContentWriter
+    internal class MarkdownWriter : ContentWriterBase
     {
         static readonly Regex htmlPageNameExpression = new Regex("^(?<name>.*?)[.]md$", RegexOptions.Compiled);
+        private readonly RenderContext renderContext;
 
-        public (string, Stream) Write(string pageName, PathBuilder pagePath, PathBuilder outputPath)
+        public MarkdownWriter(RenderContext renderContext) {
+            this.renderContext = renderContext;
+        }
+
+        public override Stream Write(string pageName, PathBuilder pagePath, PathBuilder outputPath)
         {
             var match = htmlPageNameExpression.Match(pageName);
             if (match.Success)
@@ -23,13 +29,9 @@ namespace Outrage.Verge.Processor.Markdown
                     pageName = match.Groups["name"] + "/index.html";
 
 
-                var outputFile = outputPath / pageName;
-                var outputFolder = outputFile.GetDirectory();
-                if (!outputFolder.IsDirectory) outputFolder.CreateDirectory();
+                var fileStream = this.renderContext.PublishLibrary.OpenStream(pageName);
 
-                var fileStream = outputFile.OpenFilestream(FileMode.Create);
-
-                return (outputFile, fileStream);
+                return fileStream;
             }
             else
                 throw new ArgumentException($"{pageName} was not a markdown file.");

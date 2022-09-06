@@ -1,4 +1,5 @@
 ﻿using Compose.Path;
+using Outrage.Verge.Library;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,11 +9,17 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor.Html
 {
-    internal class HtmlWriter : IContentWriter
+    internal class HtmlWriter : ContentWriterBase
     {
         static readonly Regex htmlPageNameExpression = new Regex("^(?<name>.*?)[.]html$", RegexOptions.Compiled);
+        private readonly RenderContext renderContext;
 
-        public (string, Stream) Write(string pageName, PathBuilder pagePath, PathBuilder outputPath)
+        public HtmlWriter(RenderContext renderContext)
+        {
+            this.renderContext = renderContext;
+        }
+
+        public override Stream Write(string pageName, PathBuilder pagePath, PathBuilder outputPath)
         {
             if (pageName.EndsWith(".html") && pageName != "index.html")
             {
@@ -23,13 +30,10 @@ namespace Outrage.Verge.Processor.Html
                 }
             }
 
-            var outputFile = outputPath / pageName;
-            var outputFolder = outputFile.GetDirectory();
-            if (!outputFolder.IsDirectory) outputFolder.CreateDirectory();
-
-            var fileStream = outputFile.OpenFilestream(FileMode.Create);
-
-            return (outputFile, fileStream);
+            var fileStream = this.renderContext.PublishLibrary.OpenStream(pageName);
+            return fileStream;
         }
+
+        
     }
 }
