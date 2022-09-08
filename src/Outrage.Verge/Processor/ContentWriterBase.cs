@@ -36,6 +36,6 @@ namespace Outrage.Verge.Processor
             return uri;
         }
 
-        public abstract Task<Stream> Write(ContentName pageName, PathBuilder pagePath, PathBuilder outputPath);
+        public abstract Task<Stream> Write(ContentName pageName, PathBuilder outputPath);
     }
 }

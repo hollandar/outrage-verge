@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Outrage.Verge.Library;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
@@ -10,11 +11,10 @@ namespace Outrage.Verge.Configuration
     public class SiteConfiguration
     {
         public string UriName { get; set; }
-        public string Name { get; set; }
         public string Theme { get; set; }
         public string ThemesPath { get; set; } = "themes";
         public ICollection<CopyItem> Copy { get; set; }
-        public ICollection<string> PagePaths { get; set; } = new string[] { "content" };
+        public ICollection<ContentName> PagePaths { get; set; } = new ContentName[] { "content" };
         public ICollection<string> PageGlobs { get; set; } = new string[] { "**/*.html" };
         public ICollection<VariableItem> Variables { get; set; }
         public ICollection<string> LocationFallbacks { get; set; } = new string[]

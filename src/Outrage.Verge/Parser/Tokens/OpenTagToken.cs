@@ -1,5 +1,6 @@
 ﻿using Outrage.TokenParser;
 using Outrage.Verge.Processor;
+using System.Collections.Immutable;
 using System.Data.SqlTypes;
 using System.Text;
 
@@ -9,14 +10,14 @@ public class OpenTagToken : IToken
 {
     public OpenTagToken(IEnumerable<IToken> tokens) {
         this.Name = tokens.OfType<HtmlIdentifierToken>().Single();
-        this.Attributes = tokens.OfType<AttributeToken>();
+        this.Attributes = tokens.OfType<AttributeToken>().ToList();
         this.Closed = tokens.OfType<CloseTagToken>().Any();
     }
 
     public OpenTagToken(string tag, bool closed, params AttributeToken[] attributes)
     {
         this.Name = new HtmlIdentifierToken(tag);
-        this.Attributes = attributes.Where(a => a != null);
+        this.Attributes = attributes.Where(a => a != null).ToList();
         this.Closed = closed;
     }
 
@@ -26,7 +27,7 @@ public class OpenTagToken : IToken
     }
 
     public HtmlIdentifierToken Name { get; set; }
-    public IEnumerable<AttributeToken> Attributes { get; set; }
+    public List<AttributeToken> Attributes { get; set; }
     public bool Closed { get; set; } = false;
 
     public string NodeName => Name?.Name ?? String.Empty;
@@ -45,6 +46,23 @@ public class OpenTagToken : IToken
         var underlying = Nullable.GetUnderlyingType(typeof(TAs));
         var newValue = Convert.ChangeType(attribute.AttributeValue, underlying ?? typeof(TAs));
         return (TAs)newValue;
+    }
+
+    public TAs SetAttributeValue<TAs>(string name, TAs value)
+    {
+        AttributeToken attributeToken;
+        if (HasAttribute(name))
+            attributeToken = GetAttribute(name);
+        else
+        {
+            attributeToken = new AttributeToken(name);
+            this.Attributes.Add(attributeToken);
+        }
+
+        if (attributeToken != null)
+            attributeToken.SetValue(value.ToString());
+
+        return value;
     }
 
     public AttributeToken? GetAttribute(string name)

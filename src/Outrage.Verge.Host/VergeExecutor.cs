@@ -13,6 +13,7 @@ using Outrage.Verge.Processor.Html;
 using Outrage.Verge.Processor.Markdown;
 using Outrage.Verge.Processor.Interceptors;
 using Outrage.Verge.Processor.Generators;
+using System.Linq.Expressions;
 
 namespace Outrage.Verge.Host;
 
@@ -86,6 +87,7 @@ public class VergeExecutor : IDisposable
         services.AddSingleton<IInterceptor, ForEachInterceptor>();
         services.AddSingleton<IInterceptor, CSCodeInterceptor>();
         services.AddSingleton<IInterceptor, PictureInterceptor>();
+        services.AddSingleton<IInterceptor, DocumentContentsInterceptor>();
         services.AddSingleton<IContentGenerator, SitemapGenerator>();
         services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
         services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();

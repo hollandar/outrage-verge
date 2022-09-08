@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Outrage.Verge.Library;
 using System.Runtime.CompilerServices;
+using Outrage.Verge.Processor.Interceptors;
 
 namespace Outrage.Verge.Processor.Html
 {
@@ -57,11 +58,11 @@ namespace Outrage.Verge.Processor.Html
                     {
                         DefineSection(openToken, enumerator.TakeUntil<CloseTagToken>(endSection => endSection.NodeName == Constants.DefineSectionTag));
                     }
-                    if (openToken.NodeName == Constants.TemplateTag)
+                    if (openToken.NodeName == Constants.DocumentTag)
                     {
                         if (!openToken.Closed)
-                            throw new ArgumentException($"Template tag should be self closing.");
-                        SetTemplate(openToken);
+                            throw new ArgumentException($"Document tag should be self closing.");
+                        SetDocument(openToken);
                     }
                 }
             }
@@ -138,7 +139,7 @@ namespace Outrage.Verge.Processor.Html
                         enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == Constants.DefineSectionTag).ToList();
                         continue;
                     }
-                    else if (openTagToken.NodeName == Constants.TemplateTag)
+                    else if (openTagToken.NodeName == Constants.DocumentTag)
                     {
                         continue;
                     }
@@ -177,16 +178,26 @@ namespace Outrage.Verge.Processor.Html
 
                 if (enumerator.Current is VariableToken)
                 {
+                    var stringValue = String.Empty;
                     var variableToken = (VariableToken)enumerator.Current;
                     var variableName = variableToken.VariableName;
                     if (!String.IsNullOrEmpty(variableName) && renderContext.Variables.HasValue(variableName))
                     {
                         var value = this.renderContext.Variables.GetValue(variableName);
-                        writer.Write(value.ToString());
-                    } else
-                    {
-                        writer.Write(variableToken.ToString());
+                        stringValue = value?.ToString() ?? String.Empty;
                     }
+                    else
+                    {
+                        stringValue = variableToken.ToString();
+                    }
+
+                    writer.Write(stringValue);
+                    skipSpace = false;
+                    if (stringValue?.Length > 0)
+                    {
+                        lastWritten = stringValue[stringValue.Length - 1];
+                    }
+
                     continue;
                 }
             }

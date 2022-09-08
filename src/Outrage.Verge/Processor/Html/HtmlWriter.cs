@@ -19,9 +19,9 @@ namespace Outrage.Verge.Processor.Html
             this.renderContext = renderContext;
         }
 
-        public override async Task<Stream> Write(ContentName pageName, PathBuilder pagePath, PathBuilder outputPath)
+        public override async Task<Stream> Write(ContentName pageName, PathBuilder outputPath)
         {
-            if (pageName.Value.EndsWith(".html") && pageName != "index.html")
+            if (pageName.Value.EndsWith(".html") && pageName.Filename != "index.html")
             {
                 var match = htmlPageNameExpression.Match(pageName);
                 if (match.Success)

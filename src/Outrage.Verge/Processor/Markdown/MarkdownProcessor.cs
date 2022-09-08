@@ -25,9 +25,8 @@ namespace Outrage.Verge.Processor.Markdown
         const string defaultTemplateName = "markdown.t.html";
         const string defaultTitle = "Document";
         private string content;
-        private FrontmatterConfig frontmatter;
 
-        public MarkdownProcessor(ContentName contentName, RenderContext renderContext):base(renderContext)
+        public MarkdownProcessor(ContentName contentName, RenderContext renderContext) : base(renderContext)
         {
             Process(contentName);
         }
@@ -37,27 +36,15 @@ namespace Outrage.Verge.Processor.Markdown
             if (!renderContext.ContentLibrary.ContentExists(contentName))
                 throw new ArgumentException($"{contentName} is unknown.");
 
-            var markdownFullString = renderContext.ContentLibrary.GetString(contentName);
+            var markdownFullString = renderContext.ContentLibrary.GetContentString(contentName);
+            var frontmatterConfig = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(contentName);
 
-            var match = markdownFrontmatterRegex.Match(markdownFullString);
-            if (match.Success)
-            {
-                var frontmatterString = match.Groups["frontmatter"].Value ?? String.Empty;
-                var markdownString = match.Groups["markdown"].Value ?? String.Empty;
-
-                var yamlDeserializer = new DeserializerBuilder()
-                            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                            .Build();
-
-                frontmatter = yamlDeserializer.Deserialize<FrontmatterConfig>(frontmatterString) ?? new();
-
-                content = Markdig.Markdown.ToHtml(markdownString);
-                this.sectionContent[frontmatter.Section ?? defaultBodyName] = content;
-                this.sectionContent[frontmatter.HeadSection ?? defaultHeadName] = $"<title>{frontmatter.Title ?? defaultTitle}</title>";
+            content = Markdig.Markdown.ToHtml(markdownFullString);
+            this.sectionContent[frontmatterConfig?.Section ?? defaultBodyName] = content;
+            this.renderContext.Variables.SetValue("title", frontmatterConfig?.Title ?? defaultTitle);
 
 
-                SetTemplate(new OpenTagToken("Template", new AttributeToken("layout", HandleVariables(renderContext.GetFallbackContent(frontmatter.Template ?? defaultTemplateName)))));
-            }
+            SetDocument(frontmatterConfig?.Template, frontmatterConfig?.Title);
         }
 
         public override async Task RenderToStream(Stream stream)
@@ -96,7 +83,7 @@ namespace Outrage.Verge.Processor.Markdown
             if (sectionExists)
                 await RenderContent(sectionContent[sectionName], writer);
         }
-        
+
     }
 
 }

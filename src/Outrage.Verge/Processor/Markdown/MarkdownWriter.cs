@@ -18,7 +18,7 @@ namespace Outrage.Verge.Processor.Markdown
             this.renderContext = renderContext;
         }
 
-        public override async Task<Stream> Write(ContentName pageName, PathBuilder pagePath, PathBuilder outputPath)
+        public override async Task<Stream> Write(ContentName pageName, PathBuilder outputPath)
         {
             var match = htmlPageNameExpression.Match(pageName);
             if (match.Success)

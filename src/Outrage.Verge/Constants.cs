@@ -14,9 +14,12 @@ namespace Outrage.Verge
 
         public static string DefineSectionTag = "DefineSection";
         public static string DefineSectionNameAtt = "name";
-        public static string TemplateTag = "Template";
+        public static string DocumentTag = "Document";
+        public static string DocumentTitleAtt = "title";
+        public static string DocumentTitleAttDefault = "Document";
+        public static string DocumentLayoutAtt = "layout";
+        public static string DocumentLayoutAttDefault = "site.t.html";
 
-        public static string TemplateLayoutAtt = "layout";
         public static string NameAtt = "name";
     }
 }

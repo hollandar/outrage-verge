@@ -27,15 +27,34 @@ namespace Outrage.Verge.Processor
             this.childPage = childPage;
         }
 
-        protected void SetTemplate(OpenTagToken openToken)
+        protected void SetDocument(OpenTagToken openTag)
         {
-            var templateName = openToken.GetAttributeValue(Constants.TemplateLayoutAtt);
-            var templateVariable = HandleVariables(templateName);
+            string? documentTitleString = null;
+            if (openTag.HasAttribute(Constants.DocumentTitleAtt)) 
+                documentTitleString = openTag.GetAttributeValue(Constants.DocumentTitleAtt);
+
+            string? templateName = null;
+            if (openTag.HasAttribute(Constants.DocumentLayoutAtt))
+            {
+                templateName = openTag.GetAttributeValue(Constants.DocumentLayoutAtt);
+            }
+
+
+            SetDocument(templateName, documentTitleString);
+
+        }
+
+        public void SetDocument(string? templateVariable, string? documentTitle)
+        {
+            if (documentTitle != null || !this.renderContext.Variables.HasValue("title"))
+                this.renderContext.Variables.SetValue("title", HandleVariables(documentTitle ?? Constants.DocumentTitleAttDefault));
             
+            var template = this.renderContext.GetFallbackContent(HandleVariables(templateVariable ?? Constants.DocumentLayoutAttDefault));
+
             if (layoutPage != null)
                 throw new ArgumentException("Template page can not be set twice, remove the second template tag.");
 
-            layoutPage = new HtmlProcessor(templateVariable, this, this.renderContext);
+            layoutPage = new HtmlProcessor(template, this, this.renderContext);
         }
 
         protected string HandleVariables(string input)

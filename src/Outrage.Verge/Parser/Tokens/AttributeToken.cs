@@ -11,10 +11,11 @@ public class AttributeToken : IToken
         this.Value = tokens.OfType<AttributeValueToken>().FirstOrDefault();
     }
 
-    public AttributeToken(string tag, string value)
+    public AttributeToken(string tag, string? value = null)
     {
         this.Name = new AttributeNameToken(tag);
-        this.Value = new AttributeValueToken(value);
+        if (value != null)
+            this.Value = new AttributeValueToken(value);
     }
 
     public AttributeNameToken Name { get; set; }
@@ -22,6 +23,12 @@ public class AttributeToken : IToken
 
     public string AttributeName => Name?.Name?.Name ?? String.Empty;
     public string AttributeValue => Value?.Value ?? String.Empty;
+
+    public void SetValue(string value)
+    {
+        this.Value = new AttributeValueToken(value);
+    }
+
     public override string ToString()
     {
         if (Value != null)

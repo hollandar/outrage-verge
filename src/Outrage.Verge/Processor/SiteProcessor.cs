@@ -46,7 +46,7 @@ namespace Outrage.Verge.Processor
         {
             foreach (var copyInstruction in this.renderContext.SiteConfiguration.Copy)
             {
-                var files = this.renderContext.ContentLibrary.GetContent(copyInstruction.Glob, copyInstruction.From);
+                var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, copyInstruction.From);
                 foreach (var file in files)
                 {
                     using var fromStream = this.renderContext.ContentLibrary.OpenStream($"{copyInstruction.From}{file}");
@@ -59,32 +59,29 @@ namespace Outrage.Verge.Processor
 
         private async Task BuildContent()
         {
-            foreach (var pagePathString in this.renderContext.SiteConfiguration.PagePaths)
+            foreach (var PagePath in this.renderContext.SiteConfiguration.PagePaths)
             {
-                var pagePath = this.rootPath / pagePathString;
                 foreach (var pageGlob in this.renderContext.SiteConfiguration.PageGlobs)
                 {
-                    var pageFiles = Glob.Files(pagePath, pageGlob);
+                    var pageFiles = this.renderContext.ContentLibrary.ListContent(pageGlob, PagePath);
 
-                    foreach (var pageFileString in pageFiles)
+                    foreach (var pageFile in pageFiles)
                     {
-                        var pageFile = pagePath / pageFileString;
-                        var contentName = ContentName.GetContentNameFromRelativePaths(pageFile, rootPath);
-                        var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(pageFile.Extension);
+                        var contentName = PagePath / pageFile;
+                        var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(contentName.Extension);
                         if (pageProcessorFactory != null)
                         {
-                            var pageName = ContentName.GetContentNameFromRelativePaths(pageFile, pagePath);
                             var pageRenderContext = this.renderContext.CreateChildContext();
                             var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
-                            var contentUri = pageWriter.BuildUri(contentName);
+                            var contentUri = pageWriter.BuildUri(pageFile);
                             pageRenderContext.Variables.SetValue("uri", contentUri);
                             var pageProcessor = pageProcessorFactory.BuildProcessor(contentName, pageRenderContext);
-                            var contentStream = await pageWriter.Write(pageName, pageFile, publishPath);
+                            var contentStream = await pageWriter.Write(pageFile, publishPath);
                             using (contentStream) { await pageProcessor.RenderToStream(contentStream); }
                         }
                         else
                         {
-                            throw new ArgumentException($"Unsupported file extension {pageFile.Extension}.");
+                            throw new ArgumentException($"Unsupported file extension {contentName.Extension}.");
                         }
                     }
                 }
