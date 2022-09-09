@@ -15,8 +15,6 @@ public class CloseTagToken : IToken
         this.Name = new HtmlIdentifierToken(tag);
     }
 
-    public CloseTagToken() { }
-
     public HtmlIdentifierToken Name { get; set; }
 
     public string NodeName => Name?.Name ?? String.Empty;

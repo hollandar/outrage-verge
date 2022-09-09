@@ -11,13 +11,13 @@ public class OpenTagToken : IToken
     public OpenTagToken(IEnumerable<IToken> tokens) {
         this.Name = tokens.OfType<HtmlIdentifierToken>().Single();
         this.Attributes = tokens.OfType<AttributeToken>().ToList();
-        this.Closed = tokens.OfType<CloseTagToken>().Any();
+        this.Closed = tokens.OfType<ContainedCloseTagToken>().Any();
     }
 
-    public OpenTagToken(string tag, bool closed, params AttributeToken[] attributes)
+    public OpenTagToken(string tag, bool closed, params AttributeToken?[] attributes)
     {
         this.Name = new HtmlIdentifierToken(tag);
-        this.Attributes = attributes.Where(a => a != null).ToList();
+        this.Attributes = attributes.Where(a => a != null).Cast<AttributeToken>().ToList();
         this.Closed = closed;
     }
 
@@ -52,14 +52,14 @@ public class OpenTagToken : IToken
     {
         AttributeToken attributeToken;
         if (HasAttribute(name))
-            attributeToken = GetAttribute(name);
+            attributeToken = GetAttribute(name)!;
         else
         {
             attributeToken = new AttributeToken(name);
             this.Attributes.Add(attributeToken);
         }
 
-        if (attributeToken != null)
+        if (attributeToken != null && value != null)
             attributeToken.SetValue(value.ToString());
 
         return value;

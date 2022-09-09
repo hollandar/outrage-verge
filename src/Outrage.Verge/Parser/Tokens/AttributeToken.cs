@@ -24,7 +24,7 @@ public class AttributeToken : IToken
     public string AttributeName => Name?.Name?.Name ?? String.Empty;
     public string AttributeValue => Value?.Value ?? String.Empty;
 
-    public void SetValue(string value)
+    public void SetValue(string? value)
     {
         this.Value = new AttributeValueToken(value);
     }

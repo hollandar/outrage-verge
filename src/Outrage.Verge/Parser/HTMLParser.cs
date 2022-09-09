@@ -40,7 +40,7 @@ public static class HTMLParser
         .Then(Characters.Whitespaces.Optional())
         .Then(Matcher.DelimitedBy(Attribute, Characters.Whitespaces.Ignore()))
         .Then(Characters.Whitespaces.Optional())
-        .Then(Characters.ForwardSlash.Optional().Produce<CloseTagToken>())
+        .Then(Characters.ForwardSlash.Optional().Produce<ContainedCloseTagToken>())
         .Then(Characters.GreaterThan)
         .Wrap((match) => new OpenTagToken(match.Tokens));
 

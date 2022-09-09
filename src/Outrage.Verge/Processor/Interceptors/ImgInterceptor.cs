@@ -17,7 +17,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return "Picture";
         }
 
-        public async Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var src = openTag.GetAttributeValue<string>("src");
             var sizes = new Size[] {
@@ -39,25 +39,17 @@ namespace Outrage.Verge.Processor.Interceptors
             }
 
             var outputSizes = await renderContext.PublishLibrary.Resize(src, sizes);
-
-            List<IToken> resultTokens = new List<IToken>();
-            resultTokens.Add(new OpenTagToken("picture"));
             var imageName = ContentName.From(src);
             var srcSetItems = outputSizes.Select(size => (imageName.InjectExtension($"w{size.width}").ToUri(), $"{size.width}w"))
                 .Select(image => $"{image.Item1} {image.Item2}");
-            var sourceTag = new OpenTagToken("source",
-                new AttributeToken("srcset", String.Join(", ", srcSetItems))
-            );
-            resultTokens.Add(sourceTag);
-            var imgTag = new OpenTagToken("img",
-                new AttributeToken("src", src),
-                new AttributeToken("style", "width: auto"),
-                openTag.GetAttribute("alt")
-            );
-            resultTokens.Add(imgTag);
-            resultTokens.Add(new CloseTagToken("picture"));
 
-            return resultTokens;
+            var variables = new Variables(
+                ("srcset", String.Join(", ", srcSetItems)),
+                ("src", src)
+            );
+            await renderContext.RenderComponent("components/picture.c.html", variables, writer);
+
+            return null;
         }
     }
 }

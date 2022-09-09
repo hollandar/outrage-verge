@@ -13,6 +13,7 @@ using System.IO;
 using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization;
 using Outrage.Verge.Library;
+using Outrage.Verge.Configuration;
 
 namespace Outrage.Verge.Processor.Markdown
 {
@@ -20,11 +21,7 @@ namespace Outrage.Verge.Processor.Markdown
     {
         public IDictionary<string, string> sectionContent = new Dictionary<string, string>();
         static readonly Regex markdownFrontmatterRegex = new Regex("^(?:(?<frontmatter>.*?)--){0,1}(?<markdown>.*)$", RegexOptions.Singleline | RegexOptions.Compiled);
-        const string defaultHeadName = "head";
-        const string defaultBodyName = "body";
-        const string defaultTemplateName = "markdown.t.html";
-        const string defaultTitle = "Document";
-        private string content;
+        private string content = String.Empty;
 
         public MarkdownProcessor(ContentName contentName, RenderContext renderContext) : base(renderContext)
         {
@@ -40,8 +37,8 @@ namespace Outrage.Verge.Processor.Markdown
             var frontmatterConfig = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(contentName);
 
             content = Markdig.Markdown.ToHtml(markdownFullString);
-            this.sectionContent[frontmatterConfig?.Section ?? defaultBodyName] = content;
-            this.renderContext.Variables.SetValue("title", frontmatterConfig?.Title ?? defaultTitle);
+            this.sectionContent[frontmatterConfig.Section] = content;
+            this.renderContext.Variables.SetValue("title", frontmatterConfig.Title);
 
 
             SetDocument(frontmatterConfig?.Template, frontmatterConfig?.Title);

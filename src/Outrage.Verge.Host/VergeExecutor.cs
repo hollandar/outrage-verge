@@ -27,6 +27,7 @@ public class VergeExecutor : IDisposable
     private bool disposedValue;
     private FileSystemWatcher? watcher;
     private Thread? rebuildThread;
+    private bool initial = true;
 
     protected VergeExecutor(PathBuilder inputPath, PathBuilder outputPath, IServiceProvider serviceProvider)
     {
@@ -38,7 +39,8 @@ public class VergeExecutor : IDisposable
 
     protected void StopWatching()
     {
-        this.watcher.EnableRaisingEvents = false;
+        if (this.watcher != null)
+            this.watcher.EnableRaisingEvents = false;
     }
 
     protected void StartWatching()
@@ -93,13 +95,13 @@ public class VergeExecutor : IDisposable
         services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
 
         var serviceProvider = services.BuildServiceProvider();
-        serveCommand.SetHandler((inputPathValue, outputPathValue) => {
+        serveCommand.SetHandler(async (inputPathValue, outputPathValue) => {
             var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
             var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
 
             using (var executor = new VergeExecutor(inputPath, outputPath, serviceProvider))
             {
-                executor.RebuildSite();
+                await executor.RebuildSite();
 
                 if (true)
                 {
@@ -109,14 +111,14 @@ public class VergeExecutor : IDisposable
             }
         }, inputPathOption, outputPathOption);
 
-        buildCommand.SetHandler((inputPathValue, outputPathValue) =>
+        buildCommand.SetHandler(async (inputPathValue, outputPathValue) =>
         {
             var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
             var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
 
             using (var executor = new VergeExecutor(inputPath, outputPath, serviceProvider))
             {
-                executor.RebuildSite();
+                await executor.RebuildSite();
             }
         }, inputPathOption, outputPathOption);
 
@@ -175,7 +177,8 @@ public class VergeExecutor : IDisposable
     {
         using var scope = this.serviceProvider.CreateScope();
 
-        var siteProcessor = new SiteProcessor(inputPath, outputPath, serviceProvider);
+        var siteProcessor = new SiteProcessor(inputPath, outputPath, serviceProvider, initial);
+        initial = false;
         
         var logger = scope.ServiceProvider.GetService<ILogger<VergeExecutor>>();
         Action<string, LogLevel> log = (msg, level) =>

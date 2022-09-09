@@ -19,6 +19,11 @@ namespace Outrage.Verge.Processor.Generators
     {
         private List<ContentItem> locations = new();
 
+        public void Reset()
+        {
+            locations.Clear();
+        }
+
         public Task ContentUpdated(RenderContext renderContext, string contentUri, ContentName contentName)
         {
             locations.Add(new ContentItem { contentUri = contentUri, contentName = contentName });

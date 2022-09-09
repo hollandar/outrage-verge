@@ -16,7 +16,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return "Include";
         }
 
-        public async Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var contentName = renderContext.GetFallbackContent(openTag.GetAttributeValue<string>("name"));
             var pageProcessor = new HtmlProcessor(contentName, renderContext);

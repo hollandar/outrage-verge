@@ -13,7 +13,7 @@ namespace Outrage.Verge.Processor.Interceptors
     {
         public string GetTag() => "Headline";
 
-        public Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             if (openTag.HasAttribute("headline"))
             {
@@ -25,10 +25,10 @@ namespace Outrage.Verge.Processor.Interceptors
                     new CloseTagToken("h1"),
                 };
 
-                return Task.FromResult<IEnumerable<IToken>?>(resultTokens);
+                return Task.FromResult<InterceptorResult?>(new InterceptorResult(resultTokens));
             }
 
-            return Task.FromResult<IEnumerable<IToken>?>(null);
+            return Task.FromResult<InterceptorResult?>(null);
         }
     }
 }

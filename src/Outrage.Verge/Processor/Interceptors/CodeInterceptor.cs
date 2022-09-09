@@ -15,6 +15,12 @@ namespace Outrage.Verge.Processor.Interceptors
 {
     public class ScriptGlobals
     {
+        public ScriptGlobals(RenderContext renderContext, IDictionary<string, string> parameters)
+        {
+            this.RenderContext = renderContext;
+            this.Params = parameters;
+        }
+
         public RenderContext RenderContext { get; set; }
         public IDictionary<string, string> Params { get; set; }
         public List<IToken> EmitTokens { get; set; } = new List<IToken>();
@@ -34,7 +40,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return "Code";
         }
 
-        public async Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var codeBuilder = new StringBuilder();
             foreach (var stringValue in tokens.OfType<StringValueToken>())
@@ -63,11 +69,7 @@ namespace Outrage.Verge.Processor.Interceptors
             if (script != null)
             {
                 var parameters = openTag.Attributes.ToDictionary(r => r.AttributeName, r => renderContext.Variables.ReplaceVariables(r.AttributeValue));
-                var scriptGlobals = new ScriptGlobals
-                {
-                    RenderContext = renderContext,
-                    Params = parameters
-                };
+                var scriptGlobals = new ScriptGlobals(renderContext, parameters);
 
                 var scriptState = await script.RunAsync(scriptGlobals);
 
@@ -76,7 +78,7 @@ namespace Outrage.Verge.Processor.Interceptors
 
                 if (scriptGlobals.EmitTokens?.Any() ?? false)
                 {
-                    return scriptGlobals.EmitTokens;
+                    return new InterceptorResult(scriptGlobals.EmitTokens);
                 }
             }
             else

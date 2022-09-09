@@ -92,7 +92,7 @@ namespace Outrage.Verge.Processor
             }
             else
             {
-                throw new ArgumentException($"{name} is node defined on model {model.ToString()}.");
+                throw new ArgumentException($"{name} is node defined on model {model?.ToString() ?? "Undefined"}.");
             }
         }
         
@@ -106,7 +106,8 @@ namespace Outrage.Verge.Processor
             {
                 if (innerToken is JValue)
                 {
-                    var propertyValue = (innerToken as JValue).Value;
+                    var jValue = (JValue)innerToken;
+                    var propertyValue = jValue.Value;
                     if (additionalElements.Count() == 1)
                     {
                         return propertyValue;
@@ -118,7 +119,7 @@ namespace Outrage.Verge.Processor
                 }
                 if (innerToken is JArray)
                 {
-                    var propertyValue = (innerToken as JArray);
+                    var propertyValue = (JArray)innerToken;
                     if (additionalElements.Count() == 1)
                     {
                         return propertyValue.Values<dynamic>();

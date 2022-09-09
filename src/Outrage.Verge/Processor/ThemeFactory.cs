@@ -22,21 +22,5 @@ namespace Outrage.Verge.Processor
             this.contentLibrary = contentLibrary;
             this.themeBase = themeBase;
         }
-
-        public string GetThemeLayout(string theme)
-        {
-            ThemeConfiguration themeConfiguration;
-            if (!loadedThemes.ContainsKey(theme))
-            {
-                themeConfiguration = this.contentLibrary.Deserialize<ThemeConfiguration>($"{themeBase}/{theme}/theme");
-                loadedThemes[theme] = themeConfiguration;
-            }
-            else
-            {
-                themeConfiguration = loadedThemes[theme];
-            }
-
-            return $"{themeBase}/{theme}/{themeConfiguration.Template}";
-        }
     }
 }

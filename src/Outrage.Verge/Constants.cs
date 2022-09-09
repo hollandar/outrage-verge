@@ -19,7 +19,12 @@ namespace Outrage.Verge
         public static string DocumentTitleAttDefault = "Document";
         public static string DocumentLayoutAtt = "layout";
         public static string DocumentLayoutAttDefault = "site.t.html";
+        public static string MarkdownLayoutAttDefault = "markdown.t.html";
 
         public static string NameAtt = "name";
+
+        public static string BodySection = "body";
+        public static string HeadSection = "head";
+        public static string ScriptSection = "script";
     }
 }

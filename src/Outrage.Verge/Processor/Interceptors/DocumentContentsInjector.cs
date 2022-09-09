@@ -1,5 +1,6 @@
 ﻿using Outrage.TokenParser;
 using Outrage.TokenParser.Tokens;
+using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
 using Outrage.Verge.Parser.Tokens;
 using System;
@@ -17,7 +18,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return "DocumentContents";
         }
 
-        public Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             ContentName? pathAttributeValue = null;
             if (openTag.HasAttribute("path"))
@@ -40,6 +41,7 @@ namespace Outrage.Verge.Processor.Interceptors
                         var pageProcessorFactory = renderContext.ProcessorFactory.Get(contentName.Extension);
                         if (pageProcessorFactory != null)
                         {
+                            var frontmatter = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(contentName);
                             var pageRenderContext = renderContext.CreateChildContext();
                             var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
                             var contentUri = pageWriter.BuildUri(pageName);
@@ -47,7 +49,7 @@ namespace Outrage.Verge.Processor.Interceptors
                             var linkTag = new OpenTagToken("a");
                             linkTag.SetAttributeValue("href", contentUri);
 
-                            var contentTag = new StringValueToken(contentUri);
+                            var contentTag = new StringValueToken(frontmatter?.Title ?? contentUri);
                             var closeTag = new CloseTagToken("a");
 
                             outputTokens.Add(linkTag);
@@ -58,7 +60,7 @@ namespace Outrage.Verge.Processor.Interceptors
                 }
             }
 
-            return Task.FromResult<IEnumerable<IToken>?>(outputTokens);
+            return Task.FromResult<InterceptorResult?>(new InterceptorResult(outputTokens));
         }
     }
 }

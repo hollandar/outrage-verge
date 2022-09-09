@@ -11,7 +11,7 @@ namespace Outrage.Verge.Library
 {
     public class ContentName
     {
-        private static Regex folderRegex = new Regex("^(?:(?<folder>.+)/){0,1}(?<filename>.+?)(?:[.](?<extension>[^.]*)|$)", RegexOptions.Compiled);
+        private static Regex folderRegex = new Regex("^(?:(?<folder>.+)/){0,1}(?<filename>.+?)(?:[.](?<extension>[^.]+)$|$)", RegexOptions.Compiled);
         private Match folderRegexMatch;
         string itemName;
 
@@ -113,6 +113,13 @@ namespace Outrage.Verge.Library
             if (path == null && item != null) return item;
             if (item == null && path != null) return path;
             if (path != null && item != null) return path / item.Value;
+            throw new ArgumentException("Both path and item can not be null.");
+        }
+
+        public static ContentName operator/(string? path, ContentName? item)
+        {
+            if (item != null && String.IsNullOrWhiteSpace(path)) return item;
+            if (!String.IsNullOrWhiteSpace(path)) return ContentName.From(path) / item;
             throw new ArgumentException("Both path and item can not be null.");
         }
 

@@ -5,6 +5,7 @@ using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -18,8 +19,9 @@ namespace Outrage.Verge.Processor
         private readonly PathBuilder publishPath;
         private readonly RenderContext renderContext;
         private readonly IEnumerable<IContentGenerator>? contentGenerators;
+        private readonly bool initial;
 
-        public SiteProcessor(string rootPath, string outputPath, IServiceProvider serviceProvider)
+        public SiteProcessor(string rootPath, string outputPath, IServiceProvider serviceProvider, bool initial = false)
         {
             this.rootPath = PathBuilder.From(rootPath);
             if (!this.rootPath.IsDirectory)
@@ -27,25 +29,59 @@ namespace Outrage.Verge.Processor
 
             this.publishPath = PathBuilder.From(outputPath);
             this.contentGenerators = serviceProvider.GetService<IEnumerable<IContentGenerator>>();
-            this.renderContext = new RenderContext(serviceProvider, rootPath, publishPath, contentGenerators);
+            this.renderContext = new RenderContext(serviceProvider, this.rootPath, publishPath, contentGenerators);
+            this.initial = initial;
         }
 
         public async Task Process()
         {
+            if (initial && this.renderContext.SiteConfiguration.Exec != null)
+                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Install);
+            if (this.renderContext.SiteConfiguration.Exec != null)
+                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Prebuild);
+
+            if (contentGenerators != null) foreach (var generator in contentGenerators)
+                {
+                    generator.Reset();
+                }
+
             await CopyContentFiles();
             await BuildContent();
             if (contentGenerators != null) foreach (var generator in contentGenerators)
-            {
-                await generator.Finalize(renderContext);
-            }
+                {
+                    await generator.Finalize(renderContext);
+                }
 
             this.renderContext.PublishLibrary.CleanUp();
+
+            if (this.renderContext.SiteConfiguration.Exec != null)
+                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Postbuild);
+        }
+
+        private async Task ExecuteAsync(PathBuilder folder, ICollection<string>? cmds)
+        {
+            if (cmds != null)
+                foreach (var cmd in cmds)
+                {
+                    var argRegex = new Regex("^(?<cmd>.*?)(?:\\s(?<args>.*)$|$)");
+                    var match = argRegex.Match(cmd);
+                    if (match.Success && match.Groups["cmd"].Success)
+                    {
+                        var executable = new Executable(match.Groups["cmd"].Value!);
+                        if (executable.Exists)
+                        {
+                            var arguments = match.Groups["args"].Success ? match.Groups["args"].Value : String.Empty;
+                            await executable.ExecuteAsync(arguments, folder);
+                        }
+                    }
+                }
         }
 
         private async Task CopyContentFiles()
         {
             foreach (var copyInstruction in this.renderContext.SiteConfiguration.Copy)
             {
+                ArgumentNullException.ThrowIfNull(copyInstruction.From);
                 var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, copyInstruction.From);
                 foreach (var file in files)
                 {

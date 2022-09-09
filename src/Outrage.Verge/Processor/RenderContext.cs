@@ -21,20 +21,25 @@ namespace Outrage.Verge.Processor
         {
             PublishLibrary = new PublishLibrary(publishPath);
             ContentLibrary = new ContentLibrary(rootPath);
-            SiteConfiguration = this.ContentLibrary.Deserialize<SiteConfiguration>("site");
+            var siteConfiguration = this.ContentLibrary.Deserialize<SiteConfiguration>("site");
+            if (siteConfiguration == null)
+            {
+                throw new ArgumentException("Could not deserialize site configuration (site.json/site.yaml).");
+            }
+            SiteConfiguration = siteConfiguration;
             InterceptorFactory = new InterceptorFactory(this.ContentLibrary, serviceProvider);
             ThemesFactory = new ThemesFactory(this.ContentLibrary, this.SiteConfiguration.ThemesPath);
             ProcessorFactory = new ProcessorFactory(serviceProvider);
 
-            var variables = new Dictionary<string, object>
+            var variables = new Dictionary<string, object?>();
+            if (SiteConfiguration.Theme != null && SiteConfiguration.ThemesPath != null)
             {
-                {"themeTemplate", ThemesFactory.GetThemeLayout(SiteConfiguration.Theme) },
-                {"themeBase", $"{SiteConfiguration.ThemesPath}/{SiteConfiguration.Theme}" }
-            };
-
+                variables["themeBase"] = $"{SiteConfiguration.ThemesPath}/{SiteConfiguration.Theme}";
+            }
             foreach (var variable in SiteConfiguration.Variables)
             {
-                variables[variable.Name] = variable.Value;
+                if (variable.Name != null)
+                    variables[variable.Name] = variable.Value;
             }
 
             Variables = new Variables(variables);
@@ -99,12 +104,15 @@ namespace Outrage.Verge.Processor
                 
                 foreach (var fallback in this.SiteConfiguration.LocationFallbacks)
                 {
-                    var fallbackContentName = this.Variables.ReplaceVariables($"{fallback}/{contentName}");
+                    var fallbackPath = this.Variables.ReplaceVariables(fallback);
+                    if (!String.IsNullOrWhiteSpace(fallbackPath)) { 
+                        var fallbackContentName = fallbackPath / contentName;
 
-                    if (this.ContentLibrary.ContentExists(fallbackContentName))
-                    {
-                        contentTarget = fallbackContentName;
-                        break;
+                        if (this.ContentLibrary.ContentExists(fallbackContentName))
+                        {
+                            contentTarget = fallbackContentName;
+                            break;
+                        }
                     }
                 }
             }
@@ -114,6 +122,14 @@ namespace Outrage.Verge.Processor
 
             this.fallbackCache[contentName] = contentTarget;
             return contentTarget;
+        }
+
+        public async Task RenderComponent(ContentName componentName, Variables variables, StreamWriter writer)
+        {
+            var componentContent = ProcessorFactory.Get(componentName.Extension);
+            var childRenderContext = CreateChildContext(variables);
+            var processor = componentContent.BuildProcessor(componentName, childRenderContext);
+            await processor.RenderToStream(writer);
         }
     }
 }

@@ -17,7 +17,7 @@ namespace Outrage.Verge.Processor.Html
     public class HtmlProcessor : ProcessorBase, IProcessor
     {
         private readonly IDictionary<string, List<IToken>> sectionContent = new Dictionary<string, List<IToken>>();
-        private IEnumerable<IToken> tokens;
+        private IEnumerable<IToken>? tokens;
         private bool skipSpace = true;
         private char lastWritten = char.MinValue;
 
@@ -47,6 +47,7 @@ namespace Outrage.Verge.Processor.Html
 
         protected void Process()
         {
+            ArgumentNullException.ThrowIfNull(tokens);
             var enumerator = new SpecialEnumerator<IToken>(tokens);
             while (enumerator.MoveNext())
             {
@@ -56,7 +57,7 @@ namespace Outrage.Verge.Processor.Html
                     var openToken = (OpenTagToken)token;
                     if (openToken.NodeName == Constants.DefineSectionTag)
                     {
-                        DefineSection(openToken, enumerator.TakeUntil<CloseTagToken>(endSection => endSection.NodeName == Constants.DefineSectionTag));
+                        DefineSection(openToken, enumerator.TakeUntil<CloseTagToken>(endSection => endSection?.NodeName == Constants.DefineSectionTag));
                     }
                     if (openToken.NodeName == Constants.DocumentTag)
                     {
@@ -88,6 +89,7 @@ namespace Outrage.Verge.Processor.Html
 
         public override async Task RenderToStream(StreamWriter stream)
         {
+            ArgumentNullException.ThrowIfNull(tokens);
             if (layoutPage != null)
                 await layoutPage.RenderToStream(stream);
             else
@@ -136,7 +138,7 @@ namespace Outrage.Verge.Processor.Html
                     }
                     else if (openTagToken.NodeName == Constants.DefineSectionTag)
                     {
-                        enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == Constants.DefineSectionTag).ToList();
+                        enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == Constants.DefineSectionTag).ToList();
                         continue;
                     }
                     else if (openTagToken.NodeName == Constants.DocumentTag)
@@ -147,11 +149,17 @@ namespace Outrage.Verge.Processor.Html
                     {
                         var innerTokens = Enumerable.Empty<IToken>();
                         if (!openTagToken.Closed)
-                            tokens = enumerator.TakeUntil<CloseTagToken>(token => token.NodeName == openTagToken.NodeName).ToList();
+                            tokens = enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == openTagToken.NodeName).ToList();
 
-                        var interceptorTokens = await renderContext.InterceptorFactory.RenderInterceptorAsync(renderContext, openTagToken, tokens, writer);
-                        if (interceptorTokens?.Any() ?? false)
-                            await RenderContentAsync(interceptorTokens, writer);
+                        var interceptorResult = await renderContext.InterceptorFactory.RenderInterceptorAsync(renderContext, openTagToken, tokens, writer);
+                        if (interceptorResult != null)
+                        {
+                            if (interceptorResult.Tokens?.Any() ?? false)
+                                await RenderContentAsync(interceptorResult.Tokens, writer);
+
+                            if (!String.IsNullOrEmpty(interceptorResult.Html))
+                                writer.Write(interceptorResult.Html);
+                        }
                     }
                     else
                     {
@@ -217,11 +225,6 @@ namespace Outrage.Verge.Processor.Html
 
             if (sectionExists)
                 await RenderContentAsync(sectionContent[sectionName], writer);
-        }
-
-        protected string HandleVariables(string input)
-        {
-            return renderContext.Variables.ReplaceVariables(input);
         }
     }
 }

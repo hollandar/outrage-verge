@@ -14,8 +14,22 @@ namespace Outrage.Verge.Processor
     public interface IInterceptor
     {
         string GetTag();
-        Task<IEnumerable<IToken>?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer);
+        Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer);
     }
+
+    public class InterceptorResult
+    {
+        public InterceptorResult(IEnumerable<IToken> tokens)
+        {
+            this.Tokens.AddRange(tokens);
+        }
+        
+        public InterceptorResult() { }
+
+        public string Html { get; set; } = String.Empty;
+        public List<IToken> Tokens { get; set; } = new();
+    }
+
     public class InterceptorFactory
     {
         private readonly ContentLibrary contentLibrary;
@@ -27,13 +41,16 @@ namespace Outrage.Verge.Processor
             if (serviceProvider != null)
             {
                 var interceptors = serviceProvider.GetService<IEnumerable<IInterceptor>>();
-                foreach (var interceptor in interceptors)
+                if (interceptors?.Any() ?? false)
                 {
-                    if (this.interceptors.ContainsKey(interceptor.GetTag()))
+                    foreach (var interceptor in interceptors)
                     {
-                        throw new ArgumentException($"An interceptor with the name {interceptor.GetTag()} is already registered.");
+                        if (this.interceptors.ContainsKey(interceptor.GetTag()))
+                        {
+                            throw new ArgumentException($"An interceptor with the name {interceptor.GetTag()} is already registered.");
+                        }
+                        this.interceptors[interceptor.GetTag()] = interceptor;
                     }
-                    this.interceptors[interceptor.GetTag()] = interceptor;
                 }
             }
         }
@@ -43,7 +60,7 @@ namespace Outrage.Verge.Processor
             return this.interceptors.ContainsKey(tagName);
         }
 
-        public async Task<IEnumerable<IToken>?> RenderInterceptorAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderInterceptorAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             if (!IsDefined(openTag.NodeName))
                 throw new ArgumentException($"No interceptor is defined for {openTag.NodeName}.");

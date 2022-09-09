@@ -102,14 +102,14 @@ namespace Outrage.Verge.Library
             return GetContentAndFrontmatter(contentName).frontmatter;
         }
 
-        public TType? GetFrontmatter<TType>(ContentName contentName)
+        public TType GetFrontmatter<TType>(ContentName contentName) where TType: new()
         {
             var frontmatterString = GetFrontmatterString(contentName);
             var yamlDeserializer = new DeserializerBuilder()
                             .WithNamingConvention(CamelCaseNamingConvention.Instance)
                             .Build();
 
-            var frontmatter = yamlDeserializer.Deserialize<TType>(frontmatterString) ?? default(TType);
+            var frontmatter = yamlDeserializer.Deserialize<TType>(frontmatterString) ?? new TType();
 
             return frontmatter;
         }
@@ -151,25 +151,25 @@ namespace Outrage.Verge.Library
 
         }
 
-        public TType Deserialize<TType>(ContentName filename) where TType: new()
+        public TType? Deserialize<TType>(ContentName filename) where TType: new()
         {
             var path = this.rootPath / filename;
 
             if (path.IsFile)
             {
-                return (TType)Compose.Serialize.Serializer.Deserialize<TType>(path);
+                return Compose.Serialize.Serializer.Deserialize<TType>(path);
             } else
             {
                 var yamlPath = this.rootPath / $"{filename}.yaml";
                 if (yamlPath.IsFile)
                 {
-                    return (TType)Compose.Serialize.Serializer.Deserialize<TType>(yamlPath);
+                    return Compose.Serialize.Serializer.Deserialize<TType>(yamlPath);
                 } else
                 {
                     var jsonPath = this.rootPath / $"{filename}.json";
                     if (jsonPath.IsFile)
                     {
-                        return (TType)Compose.Serialize.Serializer.Deserialize<TType>(jsonPath);
+                        return Compose.Serialize.Serializer.Deserialize<TType>(jsonPath);
                     }
                     else
                         throw new ArgumentException($"{filename} does not exist, yaml and json extensions were also tried.");

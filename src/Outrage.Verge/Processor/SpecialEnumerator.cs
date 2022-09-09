@@ -38,7 +38,7 @@ namespace Outrage.Verge.Processor
 
         public TType Current => enumerator.Current;
 
-        object IEnumerator.Current => this.Current;
+        object IEnumerator.Current => this.Current!;
 
         public void Dispose()
         {
@@ -55,7 +55,7 @@ namespace Outrage.Verge.Processor
             this.enumerator.Reset();
         }
 
-        public IEnumerable<TType> TakeUntil<TUntilType>(Func<TUntilType, bool> untilFunc) where TUntilType : class
+        public IEnumerable<TType> TakeUntil<TUntilType>(Func<TUntilType?, bool> untilFunc) where TUntilType : class
         {
             while (this.enumerator.MoveNext())
             {
