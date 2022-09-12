@@ -13,7 +13,7 @@ namespace Outrage.Verge.Processor
 {
     public interface IInterceptor
     {
-        string GetTag();
+        bool CanHandle(RenderContext renderContext, string name);
         Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer);
     }
 
@@ -33,40 +33,47 @@ namespace Outrage.Verge.Processor
     public class InterceptorFactory
     {
         private readonly ContentLibrary contentLibrary;
-        public IDictionary<string, IInterceptor> interceptors = new Dictionary<string, IInterceptor>();
+        private readonly IDictionary<string, IInterceptor> interceptorCache = new Dictionary<string, IInterceptor>();
+        private readonly IEnumerable<IInterceptor> interceptors = Enumerable.Empty<IInterceptor>();
 
         public InterceptorFactory(ContentLibrary contentLibrary, IServiceProvider? serviceProvider)
         {
             this.contentLibrary = contentLibrary;
             if (serviceProvider != null)
             {
-                var interceptors = serviceProvider.GetService<IEnumerable<IInterceptor>>();
-                if (interceptors?.Any() ?? false)
-                {
-                    foreach (var interceptor in interceptors)
-                    {
-                        if (this.interceptors.ContainsKey(interceptor.GetTag()))
-                        {
-                            throw new ArgumentException($"An interceptor with the name {interceptor.GetTag()} is already registered.");
-                        }
-                        this.interceptors[interceptor.GetTag()] = interceptor;
-                    }
-                }
+                this.interceptors = serviceProvider.GetService<IEnumerable<IInterceptor>>() ?? Enumerable.Empty<IInterceptor>();
             }
         }
 
-        public bool IsDefined(string tagName)
+        private IInterceptor? GetInterceptor(RenderContext renderContext, string tagName)
         {
-            return this.interceptors.ContainsKey(tagName);
+            if (interceptorCache.ContainsKey(tagName))
+                return interceptorCache[tagName];
+
+            foreach (var interceptor in interceptors)
+            {
+                if (interceptor.CanHandle(renderContext, tagName))
+                {
+                    interceptorCache.Add(tagName, interceptor);
+                    return interceptor;
+                }
+            }
+
+            return null;
+        }
+
+        public bool IsDefined(RenderContext renderContext, string tagName)
+        {
+            return GetInterceptor(renderContext, tagName) != null;
         }
 
         public async Task<InterceptorResult?> RenderInterceptorAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            if (!IsDefined(openTag.NodeName))
+            if (!IsDefined(renderContext, openTag.NodeName))
                 throw new ArgumentException($"No interceptor is defined for {openTag.NodeName}.");
 
-            var interceptor = this.interceptors[openTag.NodeName];
-            return await interceptor.RenderAsync(renderContext, openTag, tokens, writer);
+            var interceptor = GetInterceptor(renderContext, openTag.NodeName);
+            return await interceptor!.RenderAsync(renderContext, openTag, tokens, writer);
         }
     }
 }

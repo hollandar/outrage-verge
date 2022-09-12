@@ -24,6 +24,7 @@ namespace Outrage.Verge.Configuration
         };
 
         public Exec? Exec { get; set; }
+        public ICollection<string> Derived { get; set; } = new List<string>();
     }
 
     public class CopyItem

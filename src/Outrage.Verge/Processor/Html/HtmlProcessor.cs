@@ -11,11 +11,13 @@ using System.Xml.Serialization;
 using Outrage.Verge.Library;
 using System.Runtime.CompilerServices;
 using Outrage.Verge.Processor.Interceptors;
+using Microsoft.Extensions.Logging;
 
 namespace Outrage.Verge.Processor.Html
 {
     public class HtmlProcessor : ProcessorBase, IProcessor
     {
+        ContentName fallbackContentName;
         private readonly IDictionary<string, List<IToken>> sectionContent = new Dictionary<string, List<IToken>>();
         private IEnumerable<IToken>? tokens;
         private bool skipSpace = true;
@@ -39,8 +41,8 @@ namespace Outrage.Verge.Processor.Html
 
         public void Load(ContentName contentName)
         {
-            contentName = this.renderContext.GetFallbackContent(contentName);
-            tokens = renderContext.ContentLibrary.GetHtml(contentName);
+            this.fallbackContentName = this.renderContext.GetFallbackContent(contentName);
+            tokens = renderContext.ContentLibrary.GetHtml(this.fallbackContentName);
 
             Process();
         }
@@ -59,13 +61,19 @@ namespace Outrage.Verge.Processor.Html
                     {
                         DefineSection(openToken, enumerator.TakeUntil<CloseTagToken>(endSection => endSection?.NodeName == Constants.DefineSectionTag));
                     }
-                    if (openToken.NodeName == Constants.DocumentTag)
+                    else if (openToken.NodeName == Constants.DocumentTag)
                     {
                         if (!openToken.Closed)
                             throw new ArgumentException($"Document tag should be self closing.");
                         SetDocument(openToken);
                     }
-                }
+                } 
+            }
+
+            if (!sectionContent.ContainsKey("body") && this.layoutPage != null)
+            {
+                this.renderContext.LogWarning("{contentName} did not define a section named body, its entire content was used as body instead.", this.fallbackContentName);
+                sectionContent["body"] = tokens.ToList();
             }
         }
 
@@ -145,7 +153,7 @@ namespace Outrage.Verge.Processor.Html
                     {
                         continue;
                     }
-                    else if (renderContext.InterceptorFactory.IsDefined(openTagToken.NodeName))
+                    else if (renderContext.InterceptorFactory.IsDefined(renderContext, openTagToken.NodeName))
                     {
                         var innerTokens = Enumerable.Empty<IToken>();
                         if (!openTagToken.Closed)

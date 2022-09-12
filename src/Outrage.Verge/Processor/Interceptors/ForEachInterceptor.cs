@@ -18,9 +18,9 @@ namespace Outrage.Verge.Processor.Interceptors
 {
     public class ForEachInterceptor : IInterceptor
     {
-        public string GetTag()
+        public bool CanHandle(RenderContext renderContext, string tagName)
         {
-            return "ForEach";
+            return tagName == "ForEach";
         }
 
         public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)

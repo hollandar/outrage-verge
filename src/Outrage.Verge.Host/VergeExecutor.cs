@@ -14,6 +14,11 @@ using Outrage.Verge.Processor.Markdown;
 using Outrage.Verge.Processor.Interceptors;
 using Outrage.Verge.Processor.Generators;
 using System.Linq.Expressions;
+using Compose.Serialize;
+using Outrage.Verge.Configuration;
+using GlobExpressions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Outrage.Verge.Host;
 
@@ -34,7 +39,13 @@ public class VergeExecutor : IDisposable
         this.inputPath = inputPath;
         this.outputPath = outputPath;
         this.serviceProvider = serviceProvider;
+    }
 
+    protected VergeExecutor(PathBuilder inputPath, PathBuilder outputPath, IServiceCollection? services = null, LogLevel logLevel = LogLevel.Information)
+    {
+        this.inputPath = inputPath;
+        this.outputPath = outputPath;
+        this.serviceProvider = BuildServiceProvider(services, logLevel);
     }
 
     protected void StopWatching()
@@ -64,6 +75,31 @@ public class VergeExecutor : IDisposable
         this.watcher.EnableRaisingEvents = true;
     }
 
+    protected IServiceProvider BuildServiceProvider(IServiceCollection? services, LogLevel logLevel = LogLevel.Information)
+    {
+        if (services == null) services = new ServiceCollection();
+        services.AddLogging(options =>
+        {
+            options.AddConsole().SetMinimumLevel(logLevel);
+        });
+        services.AddSingleton<IInterceptor, IncludeInterceptor>();
+        services.AddSingleton<IInterceptor, HeadlineInterceptor>();
+        services.AddSingleton<IInterceptor, DefineInterceptor>();
+        services.AddSingleton<IInterceptor, JsonInterceptor>();
+        services.AddSingleton<IInterceptor, ForEachInterceptor>();
+        services.AddSingleton<IInterceptor, CSCodeInterceptor>();
+        services.AddSingleton<IInterceptor, PictureInterceptor>();
+        services.AddSingleton<IInterceptor, DocumentContentsInterceptor>();
+        services.AddSingleton<IInterceptor, ComponentInterceptor>();
+        services.AddSingleton<IContentGenerator, SitemapGenerator>();
+        services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
+        services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        return serviceProvider;
+    }
+
     public static async Task Start(string[] args, IServiceCollection? services = null)
     {
         var rootCommand = new RootCommand("Verge site generation command line.");
@@ -76,30 +112,14 @@ public class VergeExecutor : IDisposable
         rootCommand.AddGlobalOption(inputPathOption);
         var outputPathOption = new Option<string>("--out", "The path to write the published site to.");
         rootCommand.AddGlobalOption(outputPathOption);
+        var logLevelOption = new Option<LogLevel>("--loglevel", () => LogLevel.Information, "The minimum log level to present. Trace, Debug, Information, Warning, Error.");
+        rootCommand.AddGlobalOption(logLevelOption);
 
-        if (services == null) services = new ServiceCollection();
-        services.AddLogging(options =>
-        {
-            options.AddConsole();
-        });
-        services.AddSingleton<IInterceptor, IncludeInterceptor>();
-        services.AddSingleton<IInterceptor, HeadlineInterceptor>();
-        services.AddSingleton<IInterceptor, DefineInterceptor>();
-        services.AddSingleton<IInterceptor, JsonInterceptor>();
-        services.AddSingleton<IInterceptor, ForEachInterceptor>();
-        services.AddSingleton<IInterceptor, CSCodeInterceptor>();
-        services.AddSingleton<IInterceptor, PictureInterceptor>();
-        services.AddSingleton<IInterceptor, DocumentContentsInterceptor>();
-        services.AddSingleton<IContentGenerator, SitemapGenerator>();
-        services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
-        services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
-
-        var serviceProvider = services.BuildServiceProvider();
-        serveCommand.SetHandler(async (inputPathValue, outputPathValue) => {
+        serveCommand.SetHandler(async (inputPathValue, outputPathValue, logLevelValue) => {
             var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
             var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
 
-            using (var executor = new VergeExecutor(inputPath, outputPath, serviceProvider))
+            using (var executor = new VergeExecutor(inputPath, outputPath, services, logLevelValue))
             {
                 await executor.RebuildSite();
 
@@ -109,18 +129,18 @@ public class VergeExecutor : IDisposable
                     executor.Host(args, services);
                 }
             }
-        }, inputPathOption, outputPathOption);
+        }, inputPathOption, outputPathOption, logLevelOption);
 
-        buildCommand.SetHandler(async (inputPathValue, outputPathValue) =>
+        buildCommand.SetHandler(async (inputPathValue, outputPathValue, logLevelValue) =>
         {
             var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
             var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
 
-            using (var executor = new VergeExecutor(inputPath, outputPath, serviceProvider))
+            using (var executor = new VergeExecutor(inputPath, outputPath, services, logLevelValue))
             {
                 await executor.RebuildSite();
             }
-        }, inputPathOption, outputPathOption);
+        }, inputPathOption, outputPathOption, logLevelOption);
 
         await rootCommand.InvokeAsync(args);
     }
@@ -210,10 +230,21 @@ public class VergeExecutor : IDisposable
 
     private void Watcher_Changed(object sender, FileSystemEventArgs e)
     {
+        var fileIgnored = false;
         var file = PathBuilder.From(e.FullPath);
-        var relativeToPutput = file.IsRelativeTo(this.outputPath);
+        var configFile = this.inputPath / "site";
+        var siteConfiguration = Serializer.DeserializeExt<SiteConfiguration>(configFile);
+        var relativeToOutput = file.IsRelativeTo(this.outputPath);
+        var relativeToInput = file.GetRelativeTo(this.inputPath);
+        if (siteConfiguration?.Derived != null) foreach (var ignoredGlob in siteConfiguration.Derived)
+        {
+            if (Glob.IsMatch(relativeToInput, ignoredGlob))
+            {
+                fileIgnored = true;
+            }
+        }
 
-        if (!relativeToPutput)
+        if (!relativeToOutput && !fileIgnored)
             Rebuild();
     }
 

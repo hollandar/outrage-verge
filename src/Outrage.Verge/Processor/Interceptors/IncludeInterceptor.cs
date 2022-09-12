@@ -11,9 +11,9 @@ namespace Outrage.Verge.Processor.Interceptors
 {
     public class IncludeInterceptor : IInterceptor
     {
-        public string GetTag()
+        public bool CanHandle(RenderContext renderContext, string tagName)
         {
-            return "Include";
+            return tagName == "Include";
         }
 
         public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)

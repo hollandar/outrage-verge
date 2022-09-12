@@ -1,6 +1,7 @@
 ﻿using Compose.Path;
 using GlobExpressions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
 using System;
@@ -63,6 +64,7 @@ namespace Outrage.Verge.Processor
             if (cmds != null)
                 foreach (var cmd in cmds)
                 {
+                    this.renderContext.LogInformation("Executing command {cmd}", cmd);
                     var argRegex = new Regex("^(?<cmd>.*?)(?:\\s(?<args>.*)$|$)");
                     var match = argRegex.Match(cmd);
                     if (match.Success && match.Groups["cmd"].Success)
@@ -107,6 +109,7 @@ namespace Outrage.Verge.Processor
                         var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(contentName.Extension);
                         if (pageProcessorFactory != null)
                         {
+                            this.renderContext.LogInformation("Building {contentName}.", contentName);
                             var pageRenderContext = this.renderContext.CreateChildContext();
                             var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
                             var contentUri = pageWriter.BuildUri(pageFile);

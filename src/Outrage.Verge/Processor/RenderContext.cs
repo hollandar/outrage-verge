@@ -1,8 +1,12 @@
 ﻿using Compose.Path;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic;
+using Outrage.TokenParser;
 using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
+using Outrage.Verge.Parser.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +16,11 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor
 {
-    public class RenderContext
+    public class RenderContext : ILogger<RenderContext>
     {
         private readonly IDictionary<ContentName, ContentName> fallbackCache = new Dictionary<ContentName, ContentName>();
         private readonly IEnumerable<IContentGenerator>? contentGenerators;
+        private readonly ILogger<RenderContext>? logger;
 
         public RenderContext(IServiceProvider serviceProvider, PathBuilder rootPath, PathBuilder publishPath, IEnumerable<IContentGenerator>? contentGenerators)
         {
@@ -44,10 +49,11 @@ namespace Outrage.Verge.Processor
 
             Variables = new Variables(variables);
             this.contentGenerators = contentGenerators;
+            this.logger = serviceProvider.GetService<ILogger<RenderContext>>();
         }
 
         private RenderContext(ContentLibrary contentLibrary, PublishLibrary publishLibrary, InterceptorFactory interceptorFactory, SiteConfiguration siteConfiguration, ThemesFactory themesFactory,
-            ProcessorFactory processorFactory, Variables variables, IEnumerable<IContentGenerator>? contentGenerators)
+            ProcessorFactory processorFactory, Variables variables, IEnumerable<IContentGenerator>? contentGenerators, ILogger<RenderContext>? logger)
         {
             ContentLibrary = contentLibrary;
             PublishLibrary = publishLibrary;
@@ -57,6 +63,7 @@ namespace Outrage.Verge.Processor
             ProcessorFactory = processorFactory;
             Variables = variables;
             this.contentGenerators = contentGenerators;
+            this.logger = logger;
         }
 
         public RenderContext CreateChildContext(Variables? variables = null)
@@ -68,7 +75,8 @@ namespace Outrage.Verge.Processor
                 ThemesFactory,
                 ProcessorFactory,
                 Variables.Combine(variables),
-                contentGenerators
+                contentGenerators,
+                logger
             );
             return renderContext;
         }
@@ -80,6 +88,7 @@ namespace Outrage.Verge.Processor
         public ProcessorFactory ProcessorFactory { get; set; }
         public ThemesFactory ThemesFactory { get; set; }
         public Variables Variables { get; set; }
+        public ILogger? Logger { get { return this.logger; } }
 
         public async Task NotifyContentGenerators(RenderContext renderContext, string contentUri, ContentName contentName)
         {
@@ -88,7 +97,7 @@ namespace Outrage.Verge.Processor
                     await generator.ContentUpdated(renderContext, contentUri, contentName);
                 }
         }
-        
+
         public ContentName GetFallbackContent(ContentName contentName)
         {
             var contentTarget = ContentName.Empty;
@@ -101,11 +110,12 @@ namespace Outrage.Verge.Processor
 
             if (!this.ContentLibrary.ContentExists(contentTarget))
             {
-                
+
                 foreach (var fallback in this.SiteConfiguration.LocationFallbacks)
                 {
                     var fallbackPath = this.Variables.ReplaceVariables(fallback);
-                    if (!String.IsNullOrWhiteSpace(fallbackPath)) { 
+                    if (!String.IsNullOrWhiteSpace(fallbackPath))
+                    {
                         var fallbackContentName = fallbackPath / contentName;
 
                         if (this.ContentLibrary.ContentExists(fallbackContentName))
@@ -130,6 +140,79 @@ namespace Outrage.Verge.Processor
             var childRenderContext = CreateChildContext(variables);
             var processor = componentContent.BuildProcessor(componentName, childRenderContext);
             await processor.RenderToStream(writer);
+        }
+
+        public IDictionary<string, IEnumerable<IToken>> GetTokenGroups(IEnumerable<IToken> tokens)
+        {
+            var result = new Dictionary<string, IEnumerable<IToken>>();
+            var enumerable = new SpecialEnumerator<IToken>(tokens);
+            while (enumerable.MoveNext())
+            {
+                if (enumerable.Current is OpenTagToken)
+                {
+                    var openToken = (OpenTagToken)enumerable.Current;
+                    if (openToken.Closed)
+                    {
+                        result.Add(openToken.NodeName, Enumerable.Repeat(openToken, 1));
+                    }
+                    else
+                    {
+                        var nodeName = openToken.NodeName;
+                        var innerTokens = enumerable.TakeUntil<IToken>((openToken) => openToken is CloseTagToken && ((CloseTagToken)openToken).NodeName == nodeName).ToList();
+                        result.Add(nodeName, innerTokens);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public IDictionary<string, string> GetComponentMappings()
+        {
+            var componentMappings = new Dictionary<string, string>();
+
+            foreach (var fallback in this.SiteConfiguration.LocationFallbacks.Reverse())
+            {
+                var fallbackPath = ContentName.From(this.Variables.ReplaceVariables(fallback));
+                var fallbackName = fallbackPath / "components";
+                try
+                {
+                    var fallbackComponentMap = this.ContentLibrary.Deserialize<Dictionary<string, string>>(fallbackName);
+                    foreach (var map in fallbackComponentMap!) componentMappings[map.Key] = map.Value;
+                }
+                catch (FileNotFoundException) { }
+            }
+
+            try
+            {
+                var rootComponentMap = this.ContentLibrary.Deserialize<Dictionary<string, string>>("components");
+                foreach (var map in rootComponentMap!) componentMappings[map.Key] = map.Value;
+            }
+            catch (FileNotFoundException) { }
+
+            return componentMappings;
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            this.logger?.Log(logLevel, eventId, state, exception, formatter);
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return this.logger?.IsEnabled(logLevel) ?? false;
+        }
+
+        class EmptyDisposable : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            return this.logger?.BeginScope(state) ?? new EmptyDisposable();
         }
     }
 }

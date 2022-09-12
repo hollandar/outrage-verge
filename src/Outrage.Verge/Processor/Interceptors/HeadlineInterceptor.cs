@@ -11,7 +11,10 @@ namespace Outrage.Verge.Processor.Interceptors
 {
     public class HeadlineInterceptor : IInterceptor
     {
-        public string GetTag() => "Headline";
+        public bool CanHandle(RenderContext renderContext, string tagName)
+        {
+            return tagName == "Headline";
+        }
 
         public Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {

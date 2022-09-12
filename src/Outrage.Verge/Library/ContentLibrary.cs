@@ -19,7 +19,7 @@ namespace Outrage.Verge.Library
 {
     public class ContentLibrary
     {
-        static readonly Regex frontmatterRegex = new Regex("^(?:(?<frontmatter>.*?)--){0,1}(?<content>.*)$", RegexOptions.Singleline | RegexOptions.Compiled);
+        static readonly Regex frontmatterRegex = new Regex("^(?:(?<frontmatter>.*?)\r{0,1}\n-{2,}\r{0,1}\n){0,1}(?<content>.*)$", RegexOptions.Singleline | RegexOptions.Compiled);
 
         PathBuilder rootPath;
 
@@ -155,26 +155,7 @@ namespace Outrage.Verge.Library
         {
             var path = this.rootPath / filename;
 
-            if (path.IsFile)
-            {
-                return Compose.Serialize.Serializer.Deserialize<TType>(path);
-            } else
-            {
-                var yamlPath = this.rootPath / $"{filename}.yaml";
-                if (yamlPath.IsFile)
-                {
-                    return Compose.Serialize.Serializer.Deserialize<TType>(yamlPath);
-                } else
-                {
-                    var jsonPath = this.rootPath / $"{filename}.json";
-                    if (jsonPath.IsFile)
-                    {
-                        return Compose.Serialize.Serializer.Deserialize<TType>(jsonPath);
-                    }
-                    else
-                        throw new ArgumentException($"{filename} does not exist, yaml and json extensions were also tried.");
-                }
-            }
+            return Compose.Serialize.Serializer.DeserializeExt<TType>(path);
         }
     }
 }

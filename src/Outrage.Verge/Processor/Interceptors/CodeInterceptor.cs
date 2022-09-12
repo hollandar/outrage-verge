@@ -35,9 +35,9 @@ namespace Outrage.Verge.Processor.Interceptors
     {
         static IDictionary<string, Script<object>> compilationCache = new Dictionary<string, Script<object>>();
         static SHA256 sha256 = SHA256.Create();
-        public string GetTag()
+        public bool CanHandle(RenderContext renderContext, string tagName)
         {
-            return "Code";
+            return tagName == "Code";
         }
 
         public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)

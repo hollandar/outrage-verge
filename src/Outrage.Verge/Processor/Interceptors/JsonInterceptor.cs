@@ -17,9 +17,9 @@ namespace Outrage.Verge.Processor.Interceptors
 {
     public class JsonInterceptor : IInterceptor
     {
-        public string GetTag()
+        public bool CanHandle(RenderContext renderContext, string tagName)
         {
-            return "Json";
+            return tagName == "Json";
         }
 
         public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
