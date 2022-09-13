@@ -20,14 +20,18 @@ namespace Outrage.Verge.Processor.Interceptors
         {
             var name = openTag.GetAttributeValue<string>("name");
             var value = openTag.GetAttributeValue<object>("value");
+            var ifUndefined = openTag.HasAttribute("if-undefined");
 
             if (openTag.Closed)
             {
                 renderContext.Variables.SetValue(name, value);
-            } else
+            }
+            else
             {
                 var variables = new Variables(renderContext.Variables);
-                variables.SetValue(name, value);
+                if ((ifUndefined && !variables.HasValue(name)) || !ifUndefined)
+                    variables.SetValue(name, value);
+
                 var nrc = renderContext.CreateChildContext(variables);
                 var processor = new HtmlProcessor(tokens, nrc);
                 await processor.RenderToStream(writer);

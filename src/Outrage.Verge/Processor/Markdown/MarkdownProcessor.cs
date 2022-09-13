@@ -30,11 +30,12 @@ namespace Outrage.Verge.Processor.Markdown
 
         protected void Process(ContentName contentName)
         {
-            if (!renderContext.ContentLibrary.ContentExists(contentName))
-                throw new ArgumentException($"{contentName} is unknown.");
+            var fallbackContentName = this.renderContext.GetFallbackContent(contentName);
+            if (!renderContext.ContentLibrary.ContentExists(fallbackContentName))
+                throw new ArgumentException($"{fallbackContentName} is unknown.");
 
-            var markdownFullString = renderContext.ContentLibrary.GetContentString(contentName);
-            var frontmatterConfig = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(contentName);
+            var markdownFullString = renderContext.ContentLibrary.GetContentString(fallbackContentName);
+            var frontmatterConfig = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(fallbackContentName);
 
             content = Markdig.Markdown.ToHtml(markdownFullString);
             this.sectionContent[frontmatterConfig.Section] = content;

@@ -32,13 +32,11 @@ namespace Outrage.Verge.Processor
 
     public class InterceptorFactory
     {
-        private readonly ContentLibrary contentLibrary;
         private readonly IDictionary<string, IInterceptor> interceptorCache = new Dictionary<string, IInterceptor>();
         private readonly IEnumerable<IInterceptor> interceptors = Enumerable.Empty<IInterceptor>();
 
-        public InterceptorFactory(ContentLibrary contentLibrary, IServiceProvider? serviceProvider)
+        public InterceptorFactory(IServiceProvider? serviceProvider)
         {
-            this.contentLibrary = contentLibrary;
             if (serviceProvider != null)
             {
                 this.interceptors = serviceProvider.GetService<IEnumerable<IInterceptor>>() ?? Enumerable.Empty<IInterceptor>();

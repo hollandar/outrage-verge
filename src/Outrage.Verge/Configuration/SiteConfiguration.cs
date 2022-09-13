@@ -12,19 +12,19 @@ namespace Outrage.Verge.Configuration
     {
         public string? UriName { get; set; }
         public string? Theme { get; set; }
-        public string ThemesPath { get; set; } = "themes";
         public ICollection<CopyItem> Copy { get; set; } = new List<CopyItem>();
-        public ICollection<ContentName> PagePaths { get; set; } = new ContentName[] { "content" };
-        public ICollection<string> PageGlobs { get; set; } = new string[] { "**/*.html" };
+        public ICollection<string> PageGlobs { get; set; } = new string[] { "**/*.html", "**/*.md" };
+        public ICollection<string> ExcludeGlobs { get; set; } = new string[] { "node_modules/**/*", "**/*.t.html", "**/*.c.html" };
         public ICollection<VariableItem> Variables { get; set; } = new List<VariableItem>();
         public ICollection<string> LocationFallbacks { get; set; } = new string[]
         {
-            "$(themeBase)",
-            "base"
+            "../$(themeBase)",
+            "../base"
         };
 
-        public Exec? Exec { get; set; }
         public ICollection<string> Derived { get; set; } = new List<string>();
+        public Exec? Exec { get; set; }
+        public string Language { get; set; } = "en";
     }
 
     public class CopyItem
@@ -39,10 +39,4 @@ namespace Outrage.Verge.Configuration
         public string? Value { get; set; }
     }
 
-    public class Exec
-    {
-        public ICollection<string>? Install { get; set; } = null;
-        public ICollection<string>? Prebuild { get; set; } = null;
-        public ICollection<string>? Postbuild { get; set; } = null;
-    }
 }

@@ -31,12 +31,12 @@ namespace Outrage.Verge.Processor
         {
             string? documentTitleString = null;
             if (openTag.HasAttribute(Constants.DocumentTitleAtt)) 
-                documentTitleString = openTag.GetAttributeValue(Constants.DocumentTitleAtt);
+                documentTitleString = openTag.GetAttributeValue<string?>(Constants.DocumentTitleAtt) ?? Constants.DocumentTitleAttDefault;
 
             string? templateName = null;
             if (openTag.HasAttribute(Constants.DocumentLayoutAtt))
             {
-                templateName = openTag.GetAttributeValue(Constants.DocumentLayoutAtt);
+                templateName = openTag.GetAttributeValue<string?>(Constants.DocumentLayoutAtt) ?? Constants.DocumentLayoutAttDefault; 
             }
 
 

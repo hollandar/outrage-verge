@@ -20,6 +20,7 @@ namespace Outrage.Verge.Processor.Interceptors
         public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var src = openTag.GetAttributeValue<string>("src");
+            var srcValue = renderContext.Variables.ReplaceVariables(src);
             var sizes = new Size[] {
                 new Size (720),
                 new Size (1024),
@@ -38,14 +39,14 @@ namespace Outrage.Verge.Processor.Interceptors
                 sizes = sizesString.FromSeparatedValues<int>().Select(w => new Size(w)).ToArray();
             }
 
-            var outputSizes = await renderContext.PublishLibrary.Resize(src, sizes);
-            var imageName = ContentName.From(src);
+            var outputSizes = await renderContext.PublishLibrary.Resize(srcValue, sizes);
+            var imageName = ContentName.From(srcValue);
             var srcSetItems = outputSizes.Select(size => (imageName.InjectExtension($"w{size.width}").ToUri(), $"{size.width}w"))
                 .Select(image => $"{image.Item1} {image.Item2}");
 
             var variables = new Variables(
                 ("srcset", String.Join(", ", srcSetItems)),
-                ("src", src)
+                ("src", srcValue)
             );
             await renderContext.RenderComponent("components/picture.c.html", variables, writer);
 

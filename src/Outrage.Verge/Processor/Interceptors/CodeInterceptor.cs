@@ -13,25 +13,8 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor.Interceptors
 {
-    public class ScriptGlobals
-    {
-        public ScriptGlobals(RenderContext renderContext, IDictionary<string, string> parameters)
-        {
-            this.RenderContext = renderContext;
-            this.Params = parameters;
-        }
 
-        public RenderContext RenderContext { get; set; }
-        public IDictionary<string, string> Params { get; set; }
-        public List<IToken> EmitTokens { get; set; } = new List<IToken>();
-
-        public void Emit(params IToken[] tokens)
-        {
-            EmitTokens.AddRange(tokens);
-        }
-    }
-
-    public class CSCodeInterceptor : IInterceptor
+    public class CodeInterceptor : IInterceptor
     {
         static IDictionary<string, Script<object>> compilationCache = new Dictionary<string, Script<object>>();
         static SHA256 sha256 = SHA256.Create();
@@ -60,7 +43,8 @@ namespace Outrage.Verge.Processor.Interceptors
                     )
                     .WithReferences(
                         this.GetType().Assembly,
-                        typeof(StringValueToken).Assembly
+                        typeof(StringValueToken).Assembly,
+                        typeof(String).Assembly
                     );
                 script = CSharpScript.Create(codeBuilder.ToString(), scriptOptions, globalsType: typeof(ScriptGlobals));
                 compilationCache[shaBase64] = script;

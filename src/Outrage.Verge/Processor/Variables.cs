@@ -53,7 +53,7 @@ namespace Outrage.Verge.Processor
             {
                 foreach (var variable in variables.values)
                 {
-                    result.values.TryAdd(variable.Key, variable.Value);
+                    result.values[variable.Key] = variable.Value;
                 }
             }
 

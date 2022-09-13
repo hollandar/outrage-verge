@@ -4,6 +4,7 @@ using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -60,13 +61,43 @@ namespace Outrage.Verge.Library
             return writeStream;
         }
 
-        public Task<IEnumerable<Size>> Resize(ContentName publishName, Size[] sizes, ContentName? outputPublishName = null)
+        public async Task<IEnumerable<Size>> Resize(ContentName publishName, Size[] sizes, ContentName? outputPublishName = null)
         {
+            var rebuild = false;
+            var sha1 = SHA1.Create();
             List<Size> outputSizes = new();
             var imageName = this.publishPath / publishName;
             if (imageName.IsFile)
             {
-                var image = SixLabors.ImageSharp.Image.Load(imageName);
+                SixLabors.ImageSharp.Image image;
+                using (var imageStream = imageName.OpenFilestream(access: FileAccess.Read))
+                {
+                    image = SixLabors.ImageSharp.Image.Load(imageStream);
+                    if (imageStream.CanSeek)
+                    {
+                        imageStream.Seek(0, SeekOrigin.Begin);
+                        var hash = await sha1.ComputeHashAsync(imageStream);
+                        var crc = Convert.ToBase64String(hash);
+
+                        var crcName = imageName.Append(".crc");
+                        string previousCrc = String.Empty;
+                        if (crcName.IsFile)
+                        {
+                            previousCrc = crcName.ReadToEnd();
+                        }
+
+                        if (crc != previousCrc)
+                        {
+                            rebuild = true;
+                            crcName.Write(crc);
+                        }
+                        writtenFiles.Add(crcName);
+                    }
+                    else
+                    {
+                        rebuild = true;
+                    }
+                }
 
                 foreach (var size in sizes)
                 {
@@ -94,7 +125,7 @@ namespace Outrage.Verge.Library
 
                     var outputPath = this.publishPath / resultingOutputPublishName;
 
-                    if (!outputPath.IsFile)
+                    if (!outputPath.IsFile || rebuild)
                     {
                         var resizedImage = image.Clone(operation =>
                         {
@@ -130,7 +161,7 @@ namespace Outrage.Verge.Library
             else
                 throw new ArgumentException($"Image to resize {imageName} is not a file.");
 
-            return Task.FromResult<IEnumerable<Size>>(outputSizes);
+            return outputSizes;
         }
 
         public DateTimeOffset GetLastModified(ContentName contentName)
@@ -149,7 +180,8 @@ namespace Outrage.Verge.Library
         {
             foreach (var file in this.publishPath.ListFiles(options: new EnumerationOptions { RecurseSubdirectories = true }))
             {
-                if (!writtenFiles.Contains(file))
+                var relative = file.GetRelativeTo(this.publishPath);
+                if (!writtenFiles.Contains(file) && !relative.ToString().StartsWith('.'))
                     file.Delete();
             }
         }

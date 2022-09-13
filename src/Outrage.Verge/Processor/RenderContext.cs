@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic;
 using Outrage.TokenParser;
+using Outrage.Verge.Build;
 using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
 using Outrage.Verge.Parser.Tokens;
@@ -18,77 +19,80 @@ namespace Outrage.Verge.Processor
 {
     public class RenderContext : ILogger<RenderContext>
     {
-        private readonly IDictionary<ContentName, ContentName> fallbackCache = new Dictionary<ContentName, ContentName>();
+
+        private readonly ContentName rootPath;
+        private readonly BuildContext buildContext;
         private readonly IEnumerable<IContentGenerator>? contentGenerators;
         private readonly ILogger<RenderContext>? logger;
 
-        public RenderContext(IServiceProvider serviceProvider, PathBuilder rootPath, PathBuilder publishPath, IEnumerable<IContentGenerator>? contentGenerators)
+        public RenderContext(BuildContext buildContext, ContentName rootPath, PathBuilder publishPath, IEnumerable<IContentGenerator>? contentGenerators)
         {
-            PublishLibrary = new PublishLibrary(publishPath);
-            ContentLibrary = new ContentLibrary(rootPath);
-            var siteConfiguration = this.ContentLibrary.Deserialize<SiteConfiguration>("site");
+            this.rootPath = rootPath;
+            this.buildContext = buildContext;
+            PublishLibrary = new PublishLibrary(buildContext.ContentLibrary.RootPath / publishPath);
+            var siteConfiguration = this.ContentLibrary.Deserialize<SiteConfiguration>(rootPath / "site");
             if (siteConfiguration == null)
             {
                 throw new ArgumentException("Could not deserialize site configuration (site.json/site.yaml).");
             }
             SiteConfiguration = siteConfiguration;
-            InterceptorFactory = new InterceptorFactory(this.ContentLibrary, serviceProvider);
-            ThemesFactory = new ThemesFactory(this.ContentLibrary, this.SiteConfiguration.ThemesPath);
-            ProcessorFactory = new ProcessorFactory(serviceProvider);
+            InterceptorFactory = new InterceptorFactory(this.buildContext.ServiceProvider);
+            ProcessorFactory = new ProcessorFactory(this.buildContext.ServiceProvider);
 
             var variables = new Dictionary<string, object?>();
-            if (SiteConfiguration.Theme != null && SiteConfiguration.ThemesPath != null)
+            if (SiteConfiguration.Theme != null )
             {
-                variables["themeBase"] = $"{SiteConfiguration.ThemesPath}/{SiteConfiguration.Theme}";
+                var theme = this.buildContext.ThemesFactory.Get(SiteConfiguration.Theme);
+                variables["themeName"] = SiteConfiguration.Theme;
+                variables["themeBase"] = theme.ThemeBase;
             }
             foreach (var variable in SiteConfiguration.Variables)
             {
                 if (variable.Name != null)
                     variables[variable.Name] = variable.Value;
             }
+            variables["language"] = SiteConfiguration.Language;
 
             Variables = new Variables(variables);
             this.contentGenerators = contentGenerators;
-            this.logger = serviceProvider.GetService<ILogger<RenderContext>>();
+            this.logger = this.buildContext.ServiceProvider.GetService<ILogger<RenderContext>>();
         }
 
-        private RenderContext(ContentLibrary contentLibrary, PublishLibrary publishLibrary, InterceptorFactory interceptorFactory, SiteConfiguration siteConfiguration, ThemesFactory themesFactory,
-            ProcessorFactory processorFactory, Variables variables, IEnumerable<IContentGenerator>? contentGenerators, ILogger<RenderContext>? logger)
+        private RenderContext(RenderContext renderContext, Variables variables)
         {
-            ContentLibrary = contentLibrary;
-            PublishLibrary = publishLibrary;
-            InterceptorFactory = interceptorFactory;
-            SiteConfiguration = siteConfiguration;
-            ThemesFactory = themesFactory;
-            ProcessorFactory = processorFactory;
-            Variables = variables;
-            this.contentGenerators = contentGenerators;
-            this.logger = logger;
+            this.rootPath = renderContext.rootPath;
+            this.buildContext = renderContext.buildContext;
+            PublishLibrary = renderContext.PublishLibrary;
+            InterceptorFactory = renderContext.InterceptorFactory;
+            SiteConfiguration = renderContext.SiteConfiguration;
+            ProcessorFactory = renderContext.ProcessorFactory;
+            this.contentGenerators = renderContext.contentGenerators;
+            this.logger = renderContext.logger;
+
+            Variables = renderContext.Variables.Combine(variables);
         }
 
         public RenderContext CreateChildContext(Variables? variables = null)
         {
-            var renderContext = new RenderContext(ContentLibrary,
-                PublishLibrary,
-                InterceptorFactory,
-                SiteConfiguration,
-                ThemesFactory,
-                ProcessorFactory,
-                Variables.Combine(variables),
-                contentGenerators,
-                logger
+            var renderContext = new RenderContext(
+                this, variables ?? this.Variables
             );
             return renderContext;
         }
 
+        public BuildConfiguration BuildConfiguration { get; set; }
         public SiteConfiguration SiteConfiguration { get; set; }
         public PublishLibrary PublishLibrary { get; set; }
-        public ContentLibrary ContentLibrary { get; set; }
+        public ContentLibrary ContentLibrary => this.buildContext.ContentLibrary;
         public InterceptorFactory InterceptorFactory { get; set; }
         public ProcessorFactory ProcessorFactory { get; set; }
-        public ThemesFactory ThemesFactory { get; set; }
         public Variables Variables { get; set; }
         public ILogger? Logger { get { return this.logger; } }
+
+        public ContentName GetRelativeContentName(ContentName contentName)
+        {
+            return this.rootPath / contentName;
+        }
 
         public async Task NotifyContentGenerators(RenderContext renderContext, string contentUri, ContentName contentName)
         {
@@ -96,42 +100,6 @@ namespace Outrage.Verge.Processor
                 {
                     await generator.ContentUpdated(renderContext, contentUri, contentName);
                 }
-        }
-
-        public ContentName GetFallbackContent(ContentName contentName)
-        {
-            var contentTarget = ContentName.Empty;
-            if (this.fallbackCache.TryGetValue(contentName, out contentTarget))
-            {
-                return contentTarget;
-            }
-
-            contentTarget = contentName;
-
-            if (!this.ContentLibrary.ContentExists(contentTarget))
-            {
-
-                foreach (var fallback in this.SiteConfiguration.LocationFallbacks)
-                {
-                    var fallbackPath = this.Variables.ReplaceVariables(fallback);
-                    if (!String.IsNullOrWhiteSpace(fallbackPath))
-                    {
-                        var fallbackContentName = fallbackPath / contentName;
-
-                        if (this.ContentLibrary.ContentExists(fallbackContentName))
-                        {
-                            contentTarget = fallbackContentName;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (!this.ContentLibrary.ContentExists(contentTarget))
-                throw new ArgumentException($"No content with the name {contentName} was found in the site, or in the fallbacks.");
-
-            this.fallbackCache[contentName] = contentTarget;
-            return contentTarget;
         }
 
         public async Task RenderComponent(ContentName componentName, Variables variables, StreamWriter writer)
@@ -145,7 +113,7 @@ namespace Outrage.Verge.Processor
         public IDictionary<string, IEnumerable<IToken>> GetTokenGroups(IEnumerable<IToken> tokens)
         {
             var result = new Dictionary<string, IEnumerable<IToken>>();
-            var enumerable = new SpecialEnumerator<IToken>(tokens);
+            var enumerable = new TokenEnumerator(tokens);
             while (enumerable.MoveNext())
             {
                 if (enumerable.Current is OpenTagToken)
@@ -169,28 +137,23 @@ namespace Outrage.Verge.Processor
 
         public IDictionary<string, string> GetComponentMappings()
         {
-            var componentMappings = new Dictionary<string, string>();
+            return this.buildContext.GetComponentMappings(this.Variables);
+        }
 
-            foreach (var fallback in this.SiteConfiguration.LocationFallbacks.Reverse())
+        public ContentName GetFallbackContent(ContentName contentName)
+        {
+            if (this.ContentLibrary.ContentExists(contentName))
             {
-                var fallbackPath = ContentName.From(this.Variables.ReplaceVariables(fallback));
-                var fallbackName = fallbackPath / "components";
-                try
-                {
-                    var fallbackComponentMap = this.ContentLibrary.Deserialize<Dictionary<string, string>>(fallbackName);
-                    foreach (var map in fallbackComponentMap!) componentMappings[map.Key] = map.Value;
-                }
-                catch (FileNotFoundException) { }
+                return contentName;
             }
 
-            try
+            var siteContentName = this.rootPath / contentName;
+            if (this.ContentLibrary.ContentExists(siteContentName))
             {
-                var rootComponentMap = this.ContentLibrary.Deserialize<Dictionary<string, string>>("components");
-                foreach (var map in rootComponentMap!) componentMappings[map.Key] = map.Value;
+                return siteContentName;
             }
-            catch (FileNotFoundException) { }
 
-            return componentMappings;
+            return this.buildContext.GetFallbackContent(contentName, this.Variables);
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)

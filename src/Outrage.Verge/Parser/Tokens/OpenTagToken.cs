@@ -8,7 +8,8 @@ namespace Outrage.Verge.Parser.Tokens;
 
 public class OpenTagToken : IToken
 {
-    public OpenTagToken(IEnumerable<IToken> tokens) {
+    public OpenTagToken(IEnumerable<IToken> tokens)
+    {
         this.Name = tokens.OfType<HtmlIdentifierToken>().Single();
         this.Attributes = tokens.OfType<AttributeToken>().ToList();
         this.Closed = tokens.OfType<ContainedCloseTagToken>().Any();
@@ -21,7 +22,7 @@ public class OpenTagToken : IToken
         this.Closed = closed;
     }
 
-    public OpenTagToken(string tag, params AttributeToken?[] attributes): this(tag, false, attributes)
+    public OpenTagToken(string tag, params AttributeToken?[] attributes) : this(tag, false, attributes)
     {
 
     }
@@ -83,7 +84,17 @@ public class OpenTagToken : IToken
         if (Attributes?.Any() ?? false)
         {
             tagBuilder.Append(" ");
-            tagBuilder.Append(String.Join(" ", Attributes.Select(r => $"{r.AttributeName}=\"{variables.ReplaceVariables(r.AttributeValue)}\"")));
+            tagBuilder.Append(String.Join(" ", Attributes.Select(r =>
+            {
+                if (String.IsNullOrWhiteSpace(r.AttributeValue))
+                {
+                    return r.AttributeName;
+                }
+                else
+                {
+                    return $"{r.AttributeName}=\"{variables.ReplaceVariables(r.AttributeValue)}\"";
+                }
+            })));
         }
 
         if (Closed)

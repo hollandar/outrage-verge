@@ -19,6 +19,7 @@ using Outrage.Verge.Configuration;
 using GlobExpressions;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Outrage.Verge.Build;
 
 namespace Outrage.Verge.Host;
 
@@ -83,14 +84,14 @@ public class VergeExecutor : IDisposable
             options.AddConsole().SetMinimumLevel(logLevel);
         });
         services.AddSingleton<IInterceptor, IncludeInterceptor>();
-        services.AddSingleton<IInterceptor, HeadlineInterceptor>();
         services.AddSingleton<IInterceptor, DefineInterceptor>();
         services.AddSingleton<IInterceptor, JsonInterceptor>();
         services.AddSingleton<IInterceptor, ForEachInterceptor>();
-        services.AddSingleton<IInterceptor, CSCodeInterceptor>();
+        services.AddSingleton<IInterceptor, CodeInterceptor>();
         services.AddSingleton<IInterceptor, PictureInterceptor>();
         services.AddSingleton<IInterceptor, DocumentContentsInterceptor>();
         services.AddSingleton<IInterceptor, ComponentInterceptor>();
+        services.AddSingleton<IInterceptor, RequireInterceptor>();
         services.AddSingleton<IContentGenerator, SitemapGenerator>();
         services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
         services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
@@ -115,7 +116,8 @@ public class VergeExecutor : IDisposable
         var logLevelOption = new Option<LogLevel>("--loglevel", () => LogLevel.Information, "The minimum log level to present. Trace, Debug, Information, Warning, Error.");
         rootCommand.AddGlobalOption(logLevelOption);
 
-        serveCommand.SetHandler(async (inputPathValue, outputPathValue, logLevelValue) => {
+        serveCommand.SetHandler(async (inputPathValue, outputPathValue, logLevelValue) =>
+        {
             var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
             var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
 
@@ -181,7 +183,7 @@ public class VergeExecutor : IDisposable
             {
                 Thread.Sleep(500);
                 rebuildRequests = 0;
-                
+
                 var rebuildTask = RebuildSite();
                 Task.WaitAll(rebuildTask);
             }
@@ -197,9 +199,9 @@ public class VergeExecutor : IDisposable
     {
         using var scope = this.serviceProvider.CreateScope();
 
-        var siteProcessor = new SiteProcessor(inputPath, outputPath, serviceProvider, initial);
+        var siteProcessor = new BuildProcessor(inputPath, serviceProvider, initial);
         initial = false;
-        
+
         var logger = scope.ServiceProvider.GetService<ILogger<VergeExecutor>>();
         Action<string, LogLevel> log = (msg, level) =>
         {
@@ -232,20 +234,33 @@ public class VergeExecutor : IDisposable
     {
         var fileIgnored = false;
         var file = PathBuilder.From(e.FullPath);
-        var configFile = this.inputPath / "site";
-        var siteConfiguration = Serializer.DeserializeExt<SiteConfiguration>(configFile);
+        var buildConfigFile = this.inputPath / "build";
+        var buildConfiguration = Serializer.DeserializeExt<BuildConfiguration>(buildConfigFile);
         var relativeToOutput = file.IsRelativeTo(this.outputPath);
         var relativeToInput = file.GetRelativeTo(this.inputPath);
-        if (siteConfiguration?.Derived != null) foreach (var ignoredGlob in siteConfiguration.Derived)
-        {
-            if (Glob.IsMatch(relativeToInput, ignoredGlob))
+        if (buildConfiguration?.SitePaths != null)
+            foreach (var site in buildConfiguration.SitePaths)
             {
-                fileIgnored = true;
+                var sitePath = this.inputPath / site.Path;
+                if (!file.IsRelativeTo(sitePath)) continue;
+                var relativeToSite = file.GetRelativeTo(sitePath);
+                var configFile = sitePath / "site";
+                var siteConfiguration = Serializer.DeserializeExt<SiteConfiguration>(configFile);
+                if (siteConfiguration?.Derived != null) foreach (var ignoredGlob in siteConfiguration.Derived)
+                    {
+                        if (Glob.IsMatch(relativeToSite, ignoredGlob))
+                        {
+                            fileIgnored = true;
+                        }
+                    }
             }
-        }
 
         if (!relativeToOutput && !fileIgnored)
+        {
+            var logger = this.serviceProvider.GetService<ILogger<VergeExecutor>>();
+            logger.LogInformation("{filename} changed, initiating site rebuild.", file);
             Rebuild();
+        }
     }
 
     protected virtual void Dispose(bool disposing)

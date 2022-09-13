@@ -20,11 +20,9 @@ namespace Outrage.Verge.Library
     public class ContentLibrary
     {
         static readonly Regex frontmatterRegex = new Regex("^(?:(?<frontmatter>.*?)\r{0,1}\n-{2,}\r{0,1}\n){0,1}(?<content>.*)$", RegexOptions.Singleline | RegexOptions.Compiled);
-
-        PathBuilder rootPath;
-
-        Dictionary<string, IEnumerable<IToken>> tokenCache = new();
-        Dictionary<string, (string frontmatter, string content)> contentCache = new();
+        private readonly PathBuilder rootPath;
+        private readonly Dictionary<string, IEnumerable<IToken>> tokenCache = new();
+        private readonly Dictionary<string, (string frontmatter, string content)> contentCache = new();
 
         public ContentLibrary (string rootPath)
         {
@@ -35,13 +33,15 @@ namespace Outrage.Verge.Library
             }
         }
 
-        public IEnumerable<ContentName> ListContent(string globPattern, ContentName? contentFolder = null)
+        public PathBuilder RootPath => this.rootPath;
+        public IEnumerable<ContentName> ListContent(string globPattern, ContentName? contentFolder = null, string[]? exclude = null)
         {
             var contentDirectory = this.rootPath / contentFolder;
 
             var contentFiles = Glob.Files(contentDirectory, globPattern);
             foreach (var contentFile in contentFiles)
             {
+                if (exclude?.Any(r => Glob.IsMatch(contentFile, r)) ?? false) continue;
                 yield return ContentName.From(contentFile);
             }
         }
@@ -157,5 +157,7 @@ namespace Outrage.Verge.Library
 
             return Compose.Serialize.Serializer.DeserializeExt<TType>(path);
         }
+
+
     }
 }

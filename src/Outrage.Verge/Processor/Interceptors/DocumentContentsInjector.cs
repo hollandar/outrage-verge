@@ -28,34 +28,31 @@ namespace Outrage.Verge.Processor.Interceptors
             }
 
             List<IToken> outputTokens = new();
-            foreach (var PagePath in renderContext.SiteConfiguration.PagePaths)
+            foreach (var pageGlob in renderContext.SiteConfiguration.PageGlobs)
             {
-                foreach (var pageGlob in renderContext.SiteConfiguration.PageGlobs)
+                var pageFiles = renderContext.ContentLibrary.ListContent(pageGlob, pathAttributeValue);
+
+                foreach (var pageFile in pageFiles)
                 {
-                    var pageFiles = renderContext.ContentLibrary.ListContent(pageGlob, PagePath / pathAttributeValue);
-
-                    foreach (var pageFile in pageFiles)
+                    var pageName = pathAttributeValue / pageFile;
+                    var contentName = pathAttributeValue / pageFile;
+                    var pageProcessorFactory = renderContext.ProcessorFactory.Get(contentName.Extension);
+                    if (pageProcessorFactory != null)
                     {
-                        var pageName = pathAttributeValue / pageFile;
-                        var contentName = PagePath / pathAttributeValue / pageFile;
-                        var pageProcessorFactory = renderContext.ProcessorFactory.Get(contentName.Extension);
-                        if (pageProcessorFactory != null)
-                        {
-                            var frontmatter = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(contentName);
-                            var pageRenderContext = renderContext.CreateChildContext();
-                            var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
-                            var contentUri = pageWriter.BuildUri(pageName);
+                        var frontmatter = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(contentName);
+                        var pageRenderContext = renderContext.CreateChildContext();
+                        var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
+                        var contentUri = pageWriter.BuildUri(pageName);
 
-                            var linkTag = new OpenTagToken("a");
-                            linkTag.SetAttributeValue("href", contentUri);
+                        var linkTag = new OpenTagToken("a");
+                        linkTag.SetAttributeValue("href", contentUri);
 
-                            var contentTag = new StringValueToken(frontmatter?.Title ?? contentUri);
-                            var closeTag = new CloseTagToken("a");
+                        var contentTag = new StringValueToken(frontmatter?.Title ?? contentUri);
+                        var closeTag = new CloseTagToken("a");
 
-                            outputTokens.Add(linkTag);
-                            outputTokens.Add(contentTag);
-                            outputTokens.Add(closeTag);
-                        }
+                        outputTokens.Add(linkTag);
+                        outputTokens.Add(contentTag);
+                        outputTokens.Add(closeTag);
                     }
                 }
             }

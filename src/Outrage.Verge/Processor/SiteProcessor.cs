@@ -2,6 +2,7 @@
 using GlobExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Outrage.Verge.Build;
 using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
 using System;
@@ -16,27 +17,24 @@ namespace Outrage.Verge.Processor
 {
     public class SiteProcessor
     {
-        private readonly PathBuilder rootPath;
+        private readonly ContentName rootPath;
         private readonly PathBuilder publishPath;
+        private readonly BuildContext buildContext;
         private readonly RenderContext renderContext;
         private readonly IEnumerable<IContentGenerator>? contentGenerators;
-        private readonly bool initial;
 
-        public SiteProcessor(string rootPath, string outputPath, IServiceProvider serviceProvider, bool initial = false)
+        public SiteProcessor(ContentName rootPath, PathBuilder outputPath, BuildContext buildContext)
         {
-            this.rootPath = PathBuilder.From(rootPath);
-            if (!this.rootPath.IsDirectory)
-                throw new ArgumentException($"{rootPath} was not found.");
-
-            this.publishPath = PathBuilder.From(outputPath);
-            this.contentGenerators = serviceProvider.GetService<IEnumerable<IContentGenerator>>();
-            this.renderContext = new RenderContext(serviceProvider, this.rootPath, publishPath, contentGenerators);
-            this.initial = initial;
+            this.rootPath = rootPath;
+            this.publishPath = outputPath;
+            this.buildContext = buildContext;
+            this.contentGenerators = buildContext.ServiceProvider.GetService<IEnumerable<IContentGenerator>>();
+            this.renderContext = new RenderContext(buildContext, this.rootPath, this.publishPath, contentGenerators);
         }
 
         public async Task Process()
         {
-            if (initial && this.renderContext.SiteConfiguration.Exec != null)
+            if (this.buildContext.ExecuteSetup && this.renderContext.SiteConfiguration.Exec != null)
                 await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Install);
             if (this.renderContext.SiteConfiguration.Exec != null)
                 await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Prebuild);
@@ -59,21 +57,22 @@ namespace Outrage.Verge.Processor
                 await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Postbuild);
         }
 
-        private async Task ExecuteAsync(PathBuilder folder, ICollection<string>? cmds)
+        private async Task ExecuteAsync(ContentName folder, ICollection<BuildCommand>? cmds)
         {
             if (cmds != null)
                 foreach (var cmd in cmds)
                 {
+                    var workingDirectory = this.buildContext.ContentLibrary.RootPath / folder / cmd.In;
                     this.renderContext.LogInformation("Executing command {cmd}", cmd);
                     var argRegex = new Regex("^(?<cmd>.*?)(?:\\s(?<args>.*)$|$)");
-                    var match = argRegex.Match(cmd);
+                    var match = argRegex.Match(cmd.Cmd);
                     if (match.Success && match.Groups["cmd"].Success)
                     {
                         var executable = new Executable(match.Groups["cmd"].Value!);
                         if (executable.Exists)
                         {
                             var arguments = match.Groups["args"].Success ? match.Groups["args"].Value : String.Empty;
-                            await executable.ExecuteAsync(arguments, folder);
+                            await executable.ExecuteAsync(arguments, workingDirectory);
                         }
                     }
                 }
@@ -84,10 +83,10 @@ namespace Outrage.Verge.Processor
             foreach (var copyInstruction in this.renderContext.SiteConfiguration.Copy)
             {
                 ArgumentNullException.ThrowIfNull(copyInstruction.From);
-                var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, copyInstruction.From);
+                var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, this.rootPath / copyInstruction.From);
                 foreach (var file in files)
                 {
-                    using var fromStream = this.renderContext.ContentLibrary.OpenStream($"{copyInstruction.From}{file}");
+                    using var fromStream = this.renderContext.ContentLibrary.OpenStream(this.rootPath / copyInstruction.From / file);
                     using var toStream = this.renderContext.PublishLibrary.OpenStream($"{copyInstruction.To}{file}");
 
                     await fromStream.CopyToAsync(toStream);
@@ -97,15 +96,15 @@ namespace Outrage.Verge.Processor
 
         private async Task BuildContent()
         {
-            foreach (var PagePath in this.renderContext.SiteConfiguration.PagePaths)
             {
+
                 foreach (var pageGlob in this.renderContext.SiteConfiguration.PageGlobs)
                 {
-                    var pageFiles = this.renderContext.ContentLibrary.ListContent(pageGlob, PagePath);
+                    var pageFiles = this.renderContext.ContentLibrary.ListContent(pageGlob, rootPath, renderContext.SiteConfiguration.ExcludeGlobs.ToArray());
 
                     foreach (var pageFile in pageFiles)
                     {
-                        var contentName = PagePath / pageFile;
+                        var contentName = pageFile;
                         var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(contentName.Extension);
                         if (pageProcessorFactory != null)
                         {

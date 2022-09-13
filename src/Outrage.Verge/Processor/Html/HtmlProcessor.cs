@@ -50,7 +50,7 @@ namespace Outrage.Verge.Processor.Html
         protected void Process()
         {
             ArgumentNullException.ThrowIfNull(tokens);
-            var enumerator = new SpecialEnumerator<IToken>(tokens);
+            var enumerator = new TokenEnumerator(tokens);
             while (enumerator.MoveNext())
             {
                 var token = enumerator.Current;
@@ -106,7 +106,7 @@ namespace Outrage.Verge.Processor.Html
 
         protected async Task RenderContentAsync(IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var enumerator = new SpecialEnumerator<IToken>(tokens);
+            var enumerator = new TokenEnumerator(tokens);
             while (enumerator.MoveNext())
             {
                 if (enumerator.Current is StringValueToken)
