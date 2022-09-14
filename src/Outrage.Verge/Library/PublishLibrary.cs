@@ -105,6 +105,7 @@ namespace Outrage.Verge.Library
                     var width = size.width;
                     var height = size.height;
 
+                    // Dont render sizes beyond the size of the image, let the browser scale it if needed
                     if ((width.HasValue && width > imageInfo.Width) || (height.HasValue && height > imageInfo.Height))
                         continue;
 

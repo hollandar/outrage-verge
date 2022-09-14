@@ -50,7 +50,7 @@ namespace Outrage.Verge.Processor.Interceptors
             var otherAttributes = openTag.Attributes.Where(r => r.AttributeName != "name");
             foreach (var otherAttribute in otherAttributes)
             {
-                childRenderContext.Variables.SetValue(otherAttribute.AttributeName, renderContext.Variables.ReplaceVariables(otherAttribute.AttributeValue));
+                childRenderContext.Variables.SetValue($"_{otherAttribute.AttributeName}", otherAttribute.AttributeValue);
             }
 
             List<IToken> componentTokens = new List<IToken>();
