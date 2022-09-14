@@ -13,6 +13,7 @@ namespace Outrage.Verge.Processor
     public class ThemeContext
     {
         public ContentName ThemeBase { get; set; }
+        internal ThemeConfiguration? Configuration { get; set; }
     }
 
     public class ThemesFactory
@@ -20,7 +21,7 @@ namespace Outrage.Verge.Processor
         private readonly ContentLibrary contentLibrary;
         private readonly ContentName themeBase;
 
-        private readonly Dictionary<string, ThemeConfiguration> loadedThemes = new();
+        private readonly Dictionary<string, ThemeConfiguration?> loadedThemes = new();
 
         public ThemesFactory(ContentLibrary contentLibrary, ContentName themeBase)
         {
@@ -28,9 +29,25 @@ namespace Outrage.Verge.Processor
             this.themeBase = themeBase;
         }
 
-        public ThemeContext Get(string themeName)
+        public ThemeContext Get(string? themeName)
         {
-            return new ThemeContext { ThemeBase = this.themeBase / themeName };
+            if (themeName == null)
+            {
+                return null;
+            }
+
+            var themeConfigurationName = themeBase / themeName / "theme";
+            ThemeConfiguration themeConfiguration;
+            if (!loadedThemes.TryGetValue(themeName, out themeConfiguration))
+            {
+                themeConfiguration = this.contentLibrary.Deserialize<ThemeConfiguration>(themeConfigurationName);
+                loadedThemes[themeName] = themeConfiguration;
+            }
+
+            return new ThemeContext { 
+                Configuration = themeConfiguration,
+                ThemeBase = this.themeBase / themeName 
+            };
         }
     }
 }

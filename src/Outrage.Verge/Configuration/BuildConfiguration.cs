@@ -10,7 +10,7 @@ namespace Outrage.Verge.Configuration
     {
         public string ThemesPath { get; set; } = "themes";
         public ICollection<Site> SitePaths { get; set; } = new Site[] { new Site() { Path = "site", Publish = "publish" } };
-        public ICollection<string> FallbackPaths { get; set; } = new string[] { "$(themesPath)/$(themeName)", "base" };
+        public ICollection<string> FallbackPaths { get; set; } = new string[] { "$(themesPath)/$(themeName)", "lib" };
 
         public Exec? Exec { get; set; }
     }

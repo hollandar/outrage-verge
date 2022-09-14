@@ -34,16 +34,12 @@ namespace Outrage.Verge.Processor
 
         public async Task Process()
         {
-            if (this.buildContext.ExecuteSetup && this.renderContext.SiteConfiguration.Exec != null)
-                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Install);
-            if (this.renderContext.SiteConfiguration.Exec != null)
-                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Prebuild);
 
             if (contentGenerators != null) foreach (var generator in contentGenerators)
                 {
                     generator.Reset();
                 }
-
+            await ExecutePreBuildCommands();
             await CopyContentFiles();
             await BuildContent();
             if (contentGenerators != null) foreach (var generator in contentGenerators)
@@ -53,11 +49,39 @@ namespace Outrage.Verge.Processor
 
             this.renderContext.PublishLibrary.CleanUp();
 
-            if (this.renderContext.SiteConfiguration.Exec != null)
-                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Postbuild);
+            await ExecPostBuildCommands();
         }
 
-        private async Task ExecuteAsync(ContentName folder, ICollection<BuildCommand>? cmds)
+        private async Task ExecutePreBuildCommands()
+        {
+            if (this.buildContext.ExecuteSetup && this.renderContext.SiteConfiguration.Exec != null)
+                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Install);
+            if (this.renderContext.SiteConfiguration.Exec != null)
+                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Prebuild);
+
+            var themeContext = this.buildContext.ThemesFactory.Get(this.renderContext.SiteConfiguration.Theme);
+            if (themeContext != null)
+            {
+                if (this.buildContext.ExecuteSetup && themeContext.Configuration?.Exec != null)
+                    await ExecuteAsync(themeContext.ThemeBase, themeContext.Configuration.Exec.Install);
+                if (themeContext.Configuration?.Exec != null)
+                    await ExecuteAsync(themeContext.ThemeBase, themeContext.Configuration.Exec.Prebuild);
+            }
+        }
+
+        private async Task ExecPostBuildCommands()
+        {
+            if (this.renderContext.SiteConfiguration.Exec != null)
+                await ExecuteAsync(this.rootPath, this.renderContext.SiteConfiguration.Exec.Postbuild);
+            var themeContext = this.buildContext.ThemesFactory.Get(this.renderContext.SiteConfiguration.Theme);
+            if (themeContext != null)
+            {
+                if (themeContext.Configuration?.Exec != null)
+                    await ExecuteAsync(themeContext.ThemeBase, themeContext.Configuration.Exec.Postbuild);
+            }
+        }
+
+            private async Task ExecuteAsync(ContentName folder, ICollection<BuildCommand>? cmds)
         {
             if (cmds != null)
                 foreach (var cmd in cmds)
@@ -90,6 +114,23 @@ namespace Outrage.Verge.Processor
                     using var toStream = this.renderContext.PublishLibrary.OpenStream($"{copyInstruction.To}{file}");
 
                     await fromStream.CopyToAsync(toStream);
+                }
+            }
+
+            var themeContext = this.buildContext.ThemesFactory.Get(this.renderContext.SiteConfiguration.Theme);
+            if (themeContext != null)
+            {
+                foreach (var copyInstruction in themeContext.Configuration.Copy)
+                {
+                    ArgumentNullException.ThrowIfNull(copyInstruction.From);
+                    var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, themeContext.ThemeBase / copyInstruction.From);
+                    foreach (var file in files)
+                    {
+                        using var fromStream = this.renderContext.ContentLibrary.OpenStream(themeContext.ThemeBase / copyInstruction.From / file);
+                        using var toStream = this.renderContext.PublishLibrary.OpenStream($"{copyInstruction.To}{file}");
+
+                        await fromStream.CopyToAsync(toStream);
+                    }
                 }
             }
         }
