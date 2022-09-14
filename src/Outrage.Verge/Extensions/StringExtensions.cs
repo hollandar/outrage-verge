@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Outrage.Verge.Processor;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
@@ -31,6 +32,11 @@ namespace Outrage.Verge.Extensions
                     yield return value!;
 
             }
+        }
+
+        public static string ReplaceVariables(this string input, Variables variables)
+        {
+            return variables.ReplaceVariables(input);
         }
     }
 }

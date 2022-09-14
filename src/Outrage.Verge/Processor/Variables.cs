@@ -95,7 +95,7 @@ namespace Outrage.Verge.Processor
                 throw new ArgumentException($"{name} is node defined on model {model?.ToString() ?? "Undefined"}.");
             }
         }
-        
+
         private object? TraverseJObject(JObject model, IEnumerable<string> additionalElements)
         {
             var elementName = additionalElements.First();
@@ -133,13 +133,13 @@ namespace Outrage.Verge.Processor
                 {
                     var propertyValue = (JObject)innerToken;
                     if (additionalElements.Count() == 1)
-                    { 
-                        return propertyValue; 
+                    {
+                        return propertyValue;
                     }
                     else
                     {
                         return TraverseJObject(propertyValue, additionalElements.Skip(1));
-                    } 
+                    }
                 }
             }
 
@@ -194,7 +194,12 @@ namespace Outrage.Verge.Processor
                         var variableToken = (VariableToken)token;
                         if (HasValue(variableToken.VariableName))
                         {
-                            resultBuilder.Append(GetValue(variableToken.VariableName));
+                            var value = GetValue(variableToken.VariableName);
+                            if (value is string && value != null)
+                            {
+                                value = this.ReplaceVariables((string)value);
+                            }
+                            resultBuilder.Append(value);
                         }
                     }
                     if (token is StringValueToken)
@@ -209,6 +214,16 @@ namespace Outrage.Verge.Processor
             else
             {
                 throw new ArgumentException(match.Error);
+            }
+        }
+
+        public static Variables Empty
+        {
+            get
+            {
+                {
+                    return new Variables(new Dictionary<string, object?>());
+                }
             }
         }
     }

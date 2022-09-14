@@ -92,6 +92,8 @@ public class VergeExecutor : IDisposable
         services.AddSingleton<IInterceptor, DocumentContentsInterceptor>();
         services.AddSingleton<IInterceptor, ComponentInterceptor>();
         services.AddSingleton<IInterceptor, RequireInterceptor>();
+        services.AddSingleton<IInterceptor, MarkdownInterceptor>();
+        services.AddSingleton<IInterceptor, OnLinkInterceptor>();
         services.AddSingleton<IContentGenerator, SitemapGenerator>();
         services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
         services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
