@@ -108,7 +108,8 @@ namespace Outrage.Verge.Processor
                         var pageProcessorFactory = this.renderContext.ProcessorFactory.Get(contentName.Extension);
                         if (pageProcessorFactory != null)
                         {
-                            this.renderContext.LogInformation("Building {contentName}.", contentName);
+                            var stopwatch = new Stopwatch();
+                            stopwatch.Start();
                             var pageRenderContext = this.renderContext.CreateChildContext();
                             var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
                             var contentUri = pageWriter.BuildUri(pageFile);
@@ -116,6 +117,8 @@ namespace Outrage.Verge.Processor
                             var pageProcessor = pageProcessorFactory.BuildProcessor(contentName, pageRenderContext);
                             var contentStream = await pageWriter.Write(pageFile, publishPath);
                             using (contentStream) { await pageProcessor.RenderToStream(contentStream); }
+                            stopwatch.Stop();
+                            this.renderContext.LogInformation("Rendered {contentName} in {timeInMilliseconds}.", contentName, stopwatch.ElapsedMilliseconds);
                         }
                         else
                         {

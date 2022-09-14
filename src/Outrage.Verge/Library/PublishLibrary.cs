@@ -1,8 +1,11 @@
 ﻿using Compose.Path;
+using Force.Crc32;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -64,46 +67,45 @@ namespace Outrage.Verge.Library
         public async Task<IEnumerable<Size>> Resize(ContentName publishName, Size[] sizes, ContentName? outputPublishName = null)
         {
             var rebuild = false;
-            var sha1 = SHA1.Create();
+            SixLabors.ImageSharp.Image image = null;
             List<Size> outputSizes = new();
             var imageName = this.publishPath / publishName;
             if (imageName.IsFile)
             {
-                SixLabors.ImageSharp.Image image;
+                var loadedImage = new MemoryStream();
                 using (var imageStream = imageName.OpenFilestream(access: FileAccess.Read))
                 {
-                    image = SixLabors.ImageSharp.Image.Load(imageStream);
-                    if (imageStream.CanSeek)
-                    {
-                        imageStream.Seek(0, SeekOrigin.Begin);
-                        var hash = await sha1.ComputeHashAsync(imageStream);
-                        var crc = Convert.ToBase64String(hash);
-
-                        var crcName = imageName.Append(".crc");
-                        string previousCrc = String.Empty;
-                        if (crcName.IsFile)
-                        {
-                            previousCrc = crcName.ReadToEnd();
-                        }
-
-                        if (crc != previousCrc)
-                        {
-                            rebuild = true;
-                            crcName.Write(crc);
-                        }
-                        writtenFiles.Add(crcName);
-                    }
-                    else
-                    {
-                        rebuild = true;
-                    }
+                    imageStream.CopyTo(loadedImage);
                 }
+                // Load image width and height metadata
+                loadedImage.Seek(0, SeekOrigin.Begin);
+                IImageInfo imageInfo = SixLabors.ImageSharp.Image.Identify(loadedImage);
+
+                // Calculate a useful crc
+                loadedImage.Seek(0, SeekOrigin.Begin);
+                var crc = Crc32Algorithm.Compute(loadedImage.GetBuffer());
+                var crcString = crc.ToString();
+
+                var crcName = imageName.Append(".crc");
+                string previousCrc = String.Empty;
+                if (crcName.IsFile)
+                {
+                    previousCrc = crcName.ReadToEnd();
+                }
+
+                if (crcString != previousCrc)
+                {
+                    rebuild = true;
+                    crcName.Write(crcString);
+                }
+                writtenFiles.Add(crcName);
 
                 foreach (var size in sizes)
                 {
                     var width = size.width;
                     var height = size.height;
-                    if ((width.HasValue && width > image.Width) || (height.HasValue && height > image.Height))
+
+                    if ((width.HasValue && width > imageInfo.Width) || (height.HasValue && height > imageInfo.Height))
                         continue;
 
                     outputSizes.Add(size);
@@ -127,6 +129,12 @@ namespace Outrage.Verge.Library
 
                     if (!outputPath.IsFile || rebuild)
                     {
+                        if (image == null)
+                        {
+                            loadedImage.Seek(0, SeekOrigin.Begin);
+                            image = SixLabors.ImageSharp.Image.Load(loadedImage);
+                        }
+
                         var resizedImage = image.Clone(operation =>
                         {
                             if (width.HasValue && !height.HasValue)

@@ -4,12 +4,14 @@ using Outrage.Verge.Library;
 using Outrage.Verge.Parser.Tokens;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor.Interceptors
 {
+    
     public class PictureInterceptor : IInterceptor
     {
         public bool CanHandle(RenderContext renderContext, string tagName)
@@ -40,6 +42,7 @@ namespace Outrage.Verge.Processor.Interceptors
             }
 
             var outputSizes = await renderContext.PublishLibrary.Resize(srcValue, sizes);
+
             var imageName = ContentName.From(srcValue);
             var srcSetItems = outputSizes.Select(size => (imageName.InjectExtension($"w{size.width}").ToUri(), $"{size.width}w"))
                 .Select(image => $"{image.Item1} {image.Item2}");
