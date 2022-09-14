@@ -16,12 +16,6 @@ namespace Outrage.Verge.Configuration
         public ICollection<string> PageGlobs { get; set; } = new string[] { "**/*.html", "**/*.md" };
         public ICollection<string> ExcludeGlobs { get; set; } = new string[] { "node_modules/**/*", "**/*.t.*", "**/*.c.*" };
         public ICollection<VariableItem> Variables { get; set; } = new List<VariableItem>();
-        public ICollection<string> LocationFallbacks { get; set; } = new string[]
-        {
-            "../$(themeBase)",
-            "../base"
-        };
-
         public ICollection<string> Derived { get; set; } = new List<string>();
         public Exec? Exec { get; set; }
         public string Language { get; set; } = "en";
