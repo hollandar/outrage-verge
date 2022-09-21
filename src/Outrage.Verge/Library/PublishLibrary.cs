@@ -64,10 +64,10 @@ namespace Outrage.Verge.Library
             return writeStream;
         }
 
-        public async Task<IEnumerable<Size>> Resize(ContentName publishName, Size[] sizes, ContentName? outputPublishName = null)
+        public Task<IEnumerable<Size>> Resize(ContentName publishName, Size[] sizes, ContentName? outputPublishName = null)
         {
             var rebuild = false;
-            SixLabors.ImageSharp.Image image = null;
+            SixLabors.ImageSharp.Image? image = null;
             List<Size> outputSizes = new();
             var imageName = this.publishPath / publishName;
             if (imageName.IsFile)
@@ -170,7 +170,7 @@ namespace Outrage.Verge.Library
             else
                 throw new ArgumentException($"Image to resize {imageName} is not a file.");
 
-            return outputSizes;
+            return Task.FromResult<IEnumerable<Size>>(outputSizes);
         }
 
         public DateTimeOffset GetLastModified(ContentName contentName)

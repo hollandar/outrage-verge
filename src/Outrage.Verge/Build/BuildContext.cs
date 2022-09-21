@@ -15,6 +15,16 @@ namespace Outrage.Verge.Build
     {
         private readonly IDictionary<ContentName, ContentName> fallbackCache = new Dictionary<ContentName, ContentName>();
 
+        public BuildContext(BuildConfiguration buildConfiguration, ContentLibrary contentLibrary, ThemesFactory themesFactory, PathBuilder rootPath, bool executeSetup, IServiceProvider serviceProvider)
+        {
+            BuildConfiguration = buildConfiguration;
+            ContentLibrary = contentLibrary;
+            ThemesFactory = themesFactory;
+            RootPath = rootPath;
+            ExecuteSetup = executeSetup;
+            ServiceProvider = serviceProvider;
+        }
+
         public bool ExecuteSetup { get; internal set; }
         public IServiceProvider ServiceProvider { get; internal set; }
         public PathBuilder RootPath { get; internal set; }

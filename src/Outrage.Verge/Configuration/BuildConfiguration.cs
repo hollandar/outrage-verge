@@ -23,8 +23,8 @@ namespace Outrage.Verge.Configuration
 
     public class Site
     {
-        public string Path { get; set; }
-        public string Publish { get; set; }
+        public string? Path { get; set; }
+        public string? Publish { get; set; }
     }
 
     public class BuildCommand

@@ -86,6 +86,9 @@ namespace Outrage.Verge.Processor
             if (cmds != null)
                 foreach (var cmd in cmds)
                 {
+                    if (String.IsNullOrWhiteSpace(cmd.Cmd))
+                        throw new Exception($"Command is empty during site task execution {folder}.");
+
                     var workingDirectory = this.buildContext.ContentLibrary.RootPath / folder / cmd.In;
                     this.renderContext.LogInformation("Executing command {cmd}", cmd);
                     var argRegex = new Regex("^(?<cmd>.*?)(?:\\s(?<args>.*)$|$)");

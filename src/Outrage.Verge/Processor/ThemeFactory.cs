@@ -12,8 +12,14 @@ namespace Outrage.Verge.Processor
 {
     public class ThemeContext
     {
+        public ThemeContext(ContentName themeBase, ThemeConfiguration configuration)
+        {
+            this.ThemeBase = themeBase;
+            this.Configuration = configuration;
+        }
+
         public ContentName ThemeBase { get; set; }
-        internal ThemeConfiguration? Configuration { get; set; }
+        public ThemeConfiguration Configuration { get; set; }
     }
 
     public class ThemesFactory
@@ -29,7 +35,7 @@ namespace Outrage.Verge.Processor
             this.themeBase = themeBase;
         }
 
-        public ThemeContext Get(string? themeName)
+        public ThemeContext? Get(string? themeName)
         {
             if (themeName == null)
             {
@@ -37,17 +43,16 @@ namespace Outrage.Verge.Processor
             }
 
             var themeConfigurationName = themeBase / themeName / "theme";
-            ThemeConfiguration themeConfiguration;
+            ThemeConfiguration? themeConfiguration;
             if (!loadedThemes.TryGetValue(themeName, out themeConfiguration))
             {
                 themeConfiguration = this.contentLibrary.Deserialize<ThemeConfiguration>(themeConfigurationName);
+                if (themeConfiguration == null)
+                    throw new Exception($"Could not load theme.json/theme.yaml for theme {themeName}");
                 loadedThemes[themeName] = themeConfiguration;
             }
 
-            return new ThemeContext { 
-                Configuration = themeConfiguration,
-                ThemeBase = this.themeBase / themeName 
-            };
+            return new ThemeContext(this.themeBase / themeName, themeConfiguration!);
         }
     }
 }

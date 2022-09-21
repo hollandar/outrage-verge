@@ -260,7 +260,7 @@ public class VergeExecutor : IDisposable
         if (!relativeToOutput && !fileIgnored)
         {
             var logger = this.serviceProvider.GetService<ILogger<VergeExecutor>>();
-            logger.LogInformation("{filename} changed, initiating site rebuild.", file);
+            logger?.LogInformation("{filename} changed, initiating site rebuild.", file);
             Rebuild();
         }
     }

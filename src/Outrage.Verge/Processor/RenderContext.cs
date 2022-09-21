@@ -43,6 +43,9 @@ namespace Outrage.Verge.Processor
             if (SiteConfiguration.Theme != null )
             {
                 var theme = this.buildContext.ThemesFactory.Get(SiteConfiguration.Theme);
+                if (theme == null)
+                    throw new Exception($"A theme configuration could not be loaded for theme {SiteConfiguration.Theme}");
+
                 variables["themeName"] = SiteConfiguration.Theme;
                 variables["themeBase"] = theme.ThemeBase;
             }
@@ -80,7 +83,7 @@ namespace Outrage.Verge.Processor
             return renderContext;
         }
 
-        public BuildConfiguration BuildConfiguration { get; set; }
+        public BuildConfiguration? BuildConfiguration => buildContext.BuildConfiguration;
         public SiteConfiguration SiteConfiguration { get; set; }
         public PublishLibrary PublishLibrary { get; set; }
         public ContentLibrary ContentLibrary => this.buildContext.ContentLibrary;

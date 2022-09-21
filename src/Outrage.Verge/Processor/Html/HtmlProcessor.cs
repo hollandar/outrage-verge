@@ -17,7 +17,7 @@ namespace Outrage.Verge.Processor.Html
 {
     public class HtmlProcessor : ProcessorBase, IProcessor
     {
-        ContentName fallbackContentName;
+        private ContentName? fallbackContentName;
         private readonly IDictionary<string, List<IToken>> sectionContent = new Dictionary<string, List<IToken>>();
         private IEnumerable<IToken>? tokens;
         private bool skipSpace = true;

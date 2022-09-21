@@ -16,12 +16,12 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "Require";
         }
 
-        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var name = openTag.GetAttributeValue<string>("name");
             if (!renderContext.Variables.HasValue(name))
                 throw new VariableRequiredButNotDefinedException($"The variable {name} is required but is not defined.");
-            return null;
+            return Task.FromResult<InterceptorResult?>(null);
         }
     }
 }

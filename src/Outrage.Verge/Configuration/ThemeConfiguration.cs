@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Configuration
 {
-    internal class ThemeConfiguration
+    public class ThemeConfiguration
     {
         public string? Name { get; set; }
         public ICollection<CopyItem> Copy { get; set; } = new List<CopyItem>();

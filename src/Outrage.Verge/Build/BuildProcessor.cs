@@ -19,7 +19,7 @@ namespace Outrage.Verge.Build
         private readonly ContentLibrary contentLibrary;
         private readonly IServiceProvider serviceProvider;
         private readonly bool executeSetup;
-        private readonly BuildConfiguration? buildConfiguration;
+        private readonly BuildConfiguration buildConfiguration;
         private readonly ThemesFactory themesFactory;
         private readonly ILogger<BuildProcessor>? logger;
 
@@ -29,22 +29,18 @@ namespace Outrage.Verge.Build
             this.contentLibrary = new ContentLibrary(rootPath);
             this.serviceProvider = serviceProvider;
             this.executeSetup = executeSetup;
-            this.buildConfiguration = contentLibrary.Deserialize<BuildConfiguration>("build");
+            var loadedBuildConfiguration = contentLibrary.Deserialize<BuildConfiguration>("build");
+            if (loadedBuildConfiguration == null)
+                throw new Exception("Build configuratioon build.json/build.yaml not found in the site folder.");
+            else
+                this.buildConfiguration = loadedBuildConfiguration;
             this.themesFactory = new ThemesFactory(this.contentLibrary, this.buildConfiguration.ThemesPath);
             this.logger = serviceProvider.GetService<ILogger<BuildProcessor>>();
         }
 
         public async Task Process()
         {
-            var buildContext = new BuildContext()
-            {
-                BuildConfiguration = this.buildConfiguration,
-                ContentLibrary = this.contentLibrary,
-                ThemesFactory = this.themesFactory,
-                RootPath = this.rootPath,
-                ExecuteSetup = this.executeSetup,
-                ServiceProvider = this.serviceProvider
-            };
+            var buildContext = new BuildContext(this.buildConfiguration, this.contentLibrary, this.themesFactory, this.rootPath, this.executeSetup, this.serviceProvider);
 
             if (this.executeSetup && this.buildConfiguration?.Exec != null)
                 await ExecuteAsync(this.buildConfiguration.Exec.Install);
@@ -53,6 +49,8 @@ namespace Outrage.Verge.Build
 
             foreach (var site in this.buildConfiguration?.SitePaths ?? Enumerable.Empty<Site>())
             {
+                if (site.Path == null || site.Publish == null)
+                    throw new Exception("Site path or Publish path is empty in build configuration.");
                 var siteProcessor = new SiteProcessor(
                     ContentName.From(site.Path),
                     PathBuilder.From(site.Publish).CombineIfRelative(),
@@ -71,6 +69,8 @@ namespace Outrage.Verge.Build
             if (cmds != null)
                 foreach (var cmd in cmds)
                 {
+                    if (String.IsNullOrWhiteSpace(cmd.Cmd))
+                        throw new Exception($"Command is empty during build task execution.");
                     var workingDirectory = this.contentLibrary.RootPath / cmd.In;
                     this.logger?.LogInformation("Executing command {cmd}", cmd);
                     var argRegex = new Regex("^(?<cmd>.*?)(?:\\s(?<args>.*)$|$)");
