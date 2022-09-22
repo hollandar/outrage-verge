@@ -30,7 +30,7 @@ namespace Outrage.Verge.Processor.Markdown
 
 
                 await renderContext.NotifyContentGenerators(renderContext, BuildUri(pageName), pageName);
-                var fileStream = this.renderContext.PublishLibrary.OpenStream(pageName);
+                var fileStream = this.renderContext.PublishLibrary.OpenPublishStream(pageName);
 
                 return fileStream;
             }

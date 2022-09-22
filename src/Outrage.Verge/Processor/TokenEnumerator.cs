@@ -60,7 +60,9 @@ namespace Outrage.Verge.Processor
                 if (passedTokens.Count == 0)
                 {
                     if (this.enumerator.Current is TType && untilFunc((TType)this.enumerator.Current))
-                    { break; }
+                    {
+                        break; 
+                    }
                 }
 
                 yield return this.enumerator.Current;

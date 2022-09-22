@@ -31,7 +31,7 @@ namespace Outrage.Verge.Processor.Html
             }
 
             await renderContext.NotifyContentGenerators(renderContext, BuildUri(pageName), pageName);
-            var fileStream = this.renderContext.PublishLibrary.OpenStream(pageName);
+            var fileStream = this.renderContext.PublishLibrary.OpenPublishStream(pageName);
             return fileStream;
         }
 

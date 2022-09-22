@@ -2,6 +2,7 @@
 using Outrage.TokenParser;
 using Outrage.TokenParser.Matchers;
 using System.Text;
+using Outrage.TokenParser.Tokens;
 
 namespace Outrage.Verge.Parser;
 
@@ -58,6 +59,13 @@ public static class HTMLParser
         return tokens.OfType<CloseTagToken>().Single().NodeName == "script";
     });
 
+    public static IMatcher Template = OpenTag.When(tokens =>
+        tokens.OfType<OpenTagToken>().Single().Name.Name == "template"
+    ).Then(Matcher.Many(Characters.AnyChar.Except(Matcher.String("</template>")))).Then(CloseTag).When(tokens =>
+    {
+        return tokens.OfType<CloseTagToken>().Single().NodeName == "template";
+    });
+
     public static IMatcher Code = OpenTag.When(tokens =>
         tokens.OfType<OpenTagToken>().Single().Name.Name == "Code"
     ).Then(Matcher.Many(Characters.AnyChar.Except(Matcher.String("</Code>")))).Then(CloseTag).When(tokens =>
@@ -65,14 +73,22 @@ public static class HTMLParser
         return tokens.OfType<CloseTagToken>().Single().NodeName == "Code";
     });
 
+    public static IMatcher Encoded =
+        Characters.Ampersand.Ignore()
+        .Then(Characters.AnyChar.Except(Characters.Semicolon).Some().Text())
+        .Then(Characters.Semicolon.Ignore())
+        .Wrap(match => new EntityToken(match.Tokens.Cast<TextToken>().Single().Value));
+
     public static IMatcher Content =
         Matcher.Many(
             Matcher.FirstOf(
             Script,
+            Template,
             Code,
             OpenTag,
             CloseTag,
             Variable,
+            Encoded,
             Characters.AnyChar
             )
             ).Then(Controls.EndOfFile);
