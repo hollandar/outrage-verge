@@ -55,13 +55,21 @@ namespace Outrage.Verge.Library
             return new StreamWriter(writeStream);
         }
 
-        public Stream OpenStream(string publishName)
+        public Stream OpenPublishStream(string publishName)
         {
             var fileName = GetFilename(publishName);
             var writeStream = new PublishStream(fileName);
             writtenFiles.Add(fileName);
 
             return writeStream;
+        }
+
+        public async Task<string> LoadContentAsync(string publishName)
+        {
+            var filename = GetFilename(publishName);
+            using var stream = new FileStream(filename, FileMode.Open, FileAccess.Read);
+            using var streamReader = new StreamReader(stream);
+            return await streamReader.ReadToEndAsync();
         }
 
         public async Task<IEnumerable<Size>> Resize(ContentName publishName, Size[] sizes, ContentName? outputPublishName = null)

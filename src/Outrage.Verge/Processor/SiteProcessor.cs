@@ -111,7 +111,7 @@ namespace Outrage.Verge.Processor
                 foreach (var file in files)
                 {
                     using var fromStream = this.renderContext.ContentLibrary.OpenStream(this.rootPath / copyInstruction.From / file);
-                    using var toStream = this.renderContext.PublishLibrary.OpenStream($"{copyInstruction.To}{file}");
+                    using var toStream = this.renderContext.PublishLibrary.OpenPublishStream($"{copyInstruction.To}{file}");
 
                     await fromStream.CopyToAsync(toStream);
                 }
@@ -127,7 +127,7 @@ namespace Outrage.Verge.Processor
                     foreach (var file in files)
                     {
                         using var fromStream = this.renderContext.ContentLibrary.OpenStream(themeContext.ThemeBase / copyInstruction.From / file);
-                        using var toStream = this.renderContext.PublishLibrary.OpenStream($"{copyInstruction.To}{file}");
+                        using var toStream = this.renderContext.PublishLibrary.OpenPublishStream($"{copyInstruction.To}{file}");
 
                         await fromStream.CopyToAsync(toStream);
                     }

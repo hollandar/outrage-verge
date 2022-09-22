@@ -157,9 +157,9 @@ namespace Outrage.Verge.Processor.Html
                     {
                         var innerTokens = Enumerable.Empty<IToken>();
                         if (!openTagToken.Closed)
-                            tokens = enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == openTagToken.NodeName).ToList();
+                            innerTokens = enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == openTagToken.NodeName).ToList();
 
-                        var interceptorResult = await renderContext.InterceptorFactory.RenderInterceptorAsync(renderContext, openTagToken, tokens, writer);
+                        var interceptorResult = await renderContext.InterceptorFactory.RenderInterceptorAsync(renderContext, openTagToken, innerTokens, writer);
                         if (interceptorResult != null)
                         {
                             if (interceptorResult.Tokens?.Any() ?? false)
@@ -168,6 +168,7 @@ namespace Outrage.Verge.Processor.Html
                             if (!String.IsNullOrEmpty(interceptorResult.Html))
                                 writer.Write(interceptorResult.Html);
                         }
+                        continue;
                     }
                     else
                     {
@@ -215,6 +216,12 @@ namespace Outrage.Verge.Processor.Html
                     }
 
                     continue;
+                }
+
+                if (enumerator.Current is EntityToken)
+                {
+                    var entityToken = (EntityToken)enumerator.Current;
+                    writer.Write(entityToken.ToString());
                 }
             }
         }
