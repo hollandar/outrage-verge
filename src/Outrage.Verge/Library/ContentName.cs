@@ -164,7 +164,7 @@ namespace Outrage.Verge.Library
             return new ContentName(itemName);
         }
 
-        public static ContentName empty = new ContentName(String.Empty);
+        private static ContentName empty = new ContentName(String.Empty);
         public static ContentName Empty => empty;
 
         public static ContentName GetContentNameFromRelativePaths(PathBuilder file, PathBuilder path)

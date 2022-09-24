@@ -8,7 +8,7 @@ namespace Outrage.Verge.Configuration
 {
     public class BuildConfiguration
     {
-        public string ThemesPath { get; set; } = "themes";
+        public string ThemesFallback { get; set; } = "themes";
         public ICollection<Site> SitePaths { get; set; } = new Site[] { new Site() { Path = "site", Publish = "publish" } };
         public ICollection<string> FallbackPaths { get; set; } = new string[] { "$(themesPath)/$(themeName)", "lib" };
 

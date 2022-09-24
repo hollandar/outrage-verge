@@ -22,6 +22,7 @@ namespace Outrage.Verge.Build
         private readonly BuildConfiguration buildConfiguration;
         private readonly ThemesFactory themesFactory;
         private readonly ILogger<BuildProcessor>? logger;
+        private readonly List<LibraryFactory> libraries = new();
 
         public BuildProcessor(PathBuilder rootPath, IServiceProvider serviceProvider, bool executeSetup = false)
         {
@@ -34,13 +35,19 @@ namespace Outrage.Verge.Build
                 throw new Exception("Build configuratioon build.json/build.yaml not found in the site folder.");
             else
                 this.buildConfiguration = loadedBuildConfiguration;
-            this.themesFactory = new ThemesFactory(this.contentLibrary, this.buildConfiguration.ThemesPath);
+            this.themesFactory = new ThemesFactory(this.contentLibrary, this.buildConfiguration.ThemesFallback);
             this.logger = serviceProvider.GetService<ILogger<BuildProcessor>>();
+
+            foreach (var fallback in this.buildConfiguration.FallbackPaths)
+            {
+                var libraryFactory = new LibraryFactory(this.contentLibrary, fallback);
+                libraries.Add(libraryFactory);
+            }
         }
 
         public async Task Process()
         {
-            var buildContext = new BuildContext(this.buildConfiguration, this.contentLibrary, this.themesFactory, this.rootPath, this.executeSetup, this.serviceProvider);
+            var buildContext = new BuildContext(this.buildConfiguration, this.contentLibrary, this.themesFactory, this.libraries, this.rootPath, this.executeSetup, this.serviceProvider);
 
             if (this.executeSetup && this.buildConfiguration?.Exec != null)
                 await ExecuteAsync(this.buildConfiguration.Exec.Install);

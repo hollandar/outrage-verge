@@ -105,34 +105,51 @@ namespace Outrage.Verge.Processor
                 }
         }
 
+        
         private async Task CopyContentFiles()
         {
-            foreach (var copyInstruction in this.renderContext.SiteConfiguration.Copy)
-            {
-                ArgumentNullException.ThrowIfNull(copyInstruction.From);
-                var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, this.rootPath / copyInstruction.From);
-                foreach (var file in files)
-                {
-                    using var fromStream = this.renderContext.ContentLibrary.OpenStream(this.rootPath / copyInstruction.From / file);
-                    using var toStream = this.renderContext.PublishLibrary.OpenPublishStream($"{copyInstruction.To}{file}");
-
-                    await fromStream.CopyToAsync(toStream);
-                }
-            }
+            HashSet<ContentName> copied = new();
+            List<CopyItem> copyInstructions = new();
+            copyInstructions.AddRange(this.renderContext.SiteConfiguration.Copy);
+            var copyFromPath = this.rootPath;
+            await CopyWithFallback(copied, copyInstructions, copyFromPath);
 
             var themeContext = this.buildContext.ThemesFactory.Get(this.renderContext.SiteConfiguration.Theme);
             if (themeContext != null)
             {
-                foreach (var copyInstruction in themeContext.Configuration.Copy)
+                copyFromPath = themeContext.ThemeBase;
+                copyInstructions.AddRange(themeContext.Configuration.Copy);
+                await CopyWithFallback(copied, copyInstructions, copyFromPath);
+            }
+
+            foreach (var library in this.buildContext.LibraryFactories)
+            {
+                var libraryContext = library.Get();
+                if (libraryContext != null)
                 {
-                    ArgumentNullException.ThrowIfNull(copyInstruction.From);
-                    var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, themeContext.ThemeBase / copyInstruction.From);
-                    foreach (var file in files)
+                    copyFromPath = libraryContext.LibraryBase;
+                    copyInstructions.AddRange(libraryContext.LibConfiguration.Copy);
+                    await CopyWithFallback(copied, copyInstructions, copyFromPath);
+                }
+            }
+        }
+
+        private async Task CopyWithFallback(HashSet<ContentName> copied, List<CopyItem> copyInstructions, ContentName copyFromPath)
+        {
+            foreach (var copyInstruction in copyInstructions)
+            {
+                ArgumentNullException.ThrowIfNull(copyInstruction.From);
+                var files = this.renderContext.ContentLibrary.ListContent(copyInstruction.Glob, copyFromPath / copyInstruction.From);
+                foreach (var file in files)
+                {
+                    var componentPath = copyInstruction.From / file;
+                    if (!copied.Contains(componentPath))
                     {
-                        using var fromStream = this.renderContext.ContentLibrary.OpenStream(themeContext.ThemeBase / copyInstruction.From / file);
+                        using var fromStream = this.renderContext.ContentLibrary.OpenStream(copyFromPath / copyInstruction.From / file);
                         using var toStream = this.renderContext.PublishLibrary.OpenPublishStream($"{copyInstruction.To}{file}");
 
                         await fromStream.CopyToAsync(toStream);
+                        copied.Add(componentPath);
                     }
                 }
             }

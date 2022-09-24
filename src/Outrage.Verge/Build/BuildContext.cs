@@ -15,11 +15,12 @@ namespace Outrage.Verge.Build
     {
         private readonly IDictionary<ContentName, ContentName> fallbackCache = new Dictionary<ContentName, ContentName>();
 
-        public BuildContext(BuildConfiguration buildConfiguration, ContentLibrary contentLibrary, ThemesFactory themesFactory, PathBuilder rootPath, bool executeSetup, IServiceProvider serviceProvider)
+        public BuildContext(BuildConfiguration buildConfiguration, ContentLibrary contentLibrary, ThemesFactory themesFactory, ICollection<LibraryFactory> libraryFactories, PathBuilder rootPath, bool executeSetup, IServiceProvider serviceProvider)
         {
             BuildConfiguration = buildConfiguration;
             ContentLibrary = contentLibrary;
             ThemesFactory = themesFactory;
+            this.LibraryFactories = libraryFactories;
             RootPath = rootPath;
             ExecuteSetup = executeSetup;
             ServiceProvider = serviceProvider;
@@ -30,6 +31,7 @@ namespace Outrage.Verge.Build
         public PathBuilder RootPath { get; internal set; }
         public ContentLibrary ContentLibrary { get; internal set; }
         public ThemesFactory ThemesFactory { get; internal set; }
+        public ICollection<LibraryFactory> LibraryFactories { get; internal set; }
         public BuildConfiguration? BuildConfiguration { get; internal set; }
 
         public ContentName GetFallbackContent(ContentName contentName, Variables variables)
@@ -39,21 +41,37 @@ namespace Outrage.Verge.Build
                 return cacheItem;
             }
 
-            var themeVariables = new Variables(variables);
-            themeVariables.SetValue("themesPath", this.BuildConfiguration?.ThemesPath);
-            var contentTarget = ContentName.Empty;
-            foreach (var fallback in this.BuildConfiguration?.FallbackPaths ?? Enumerable.Empty<string>())
-            {
-                var fallbackPath = themeVariables.ReplaceVariables(fallback);
-                if (!String.IsNullOrWhiteSpace(fallbackPath))
-                {
-                    var fallbackContentName = fallbackPath / contentName;
 
-                    if (this.ContentLibrary.ContentExists(fallbackContentName))
+            var contentTarget = ContentName.Empty;
+            if (variables.HasValue("themeName"))
+            {
+                var themeName = variables.GetValue<string>("themeName");
+                var themeContext = this.ThemesFactory.Get(themeName);
+                if (themeContext != null)
+                {
+                    var fallbackPath = themeContext.ThemeBase / contentName;
+                    if (this.ContentLibrary.ContentExists(fallbackPath))
                     {
-                        contentTarget = fallbackContentName;
-                        break;
+                        contentTarget = fallbackPath;
                     }
+                }
+            }
+
+            if (contentTarget == ContentName.Empty)
+            {
+                foreach (var library in this.LibraryFactories)
+                {
+                    var libraryContext = library.Get();
+                    if (libraryContext != null)
+                    {
+                        var fallbackPath = libraryContext.LibraryBase / contentName;
+                        if (this.ContentLibrary.ContentExists(fallbackPath))
+                        {
+                            contentTarget = fallbackPath;
+                            break;
+                        }
+                    }
+
                 }
             }
 
@@ -68,7 +86,7 @@ namespace Outrage.Verge.Build
         {
             var componentMappings = new Dictionary<string, string>();
             var themeVariables = new Variables(variables);
-            themeVariables.SetValue("themesPath", this.BuildConfiguration?.ThemesPath);
+            themeVariables.SetValue("themesPath", this.BuildConfiguration?.ThemesFallback);
 
             foreach (var fallback in this.BuildConfiguration?.FallbackPaths.Reverse() ?? Enumerable.Empty<String>())
             {

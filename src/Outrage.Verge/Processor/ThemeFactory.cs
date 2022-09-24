@@ -1,5 +1,6 @@
 ﻿using Compose.Path;
 using Outrage.Verge.Configuration;
+using Outrage.Verge.Extensions;
 using Outrage.Verge.Library;
 using System;
 using System.Collections.Generic;
@@ -25,14 +26,14 @@ namespace Outrage.Verge.Processor
     public class ThemesFactory
     {
         private readonly ContentLibrary contentLibrary;
-        private readonly ContentName themeBase;
+        private readonly string themeFallback;
 
         private readonly Dictionary<string, ThemeConfiguration?> loadedThemes = new();
 
-        public ThemesFactory(ContentLibrary contentLibrary, ContentName themeBase)
+        public ThemesFactory(ContentLibrary contentLibrary, string themeFallback)
         {
             this.contentLibrary = contentLibrary;
-            this.themeBase = themeBase;
+            this.themeFallback = themeFallback;
         }
 
         public ThemeContext? Get(string? themeName)
@@ -42,7 +43,9 @@ namespace Outrage.Verge.Processor
                 return null;
             }
 
-            var themeConfigurationName = themeBase / themeName / "theme";
+            var variables = new Variables(("themeName", themeName));
+            var themeBase = ContentName.From(themeFallback.ReplaceVariables(variables));
+            var themeConfigurationName = themeBase / "theme";
             ThemeConfiguration? themeConfiguration;
             if (!loadedThemes.TryGetValue(themeName, out themeConfiguration))
             {
@@ -52,7 +55,7 @@ namespace Outrage.Verge.Processor
                 loadedThemes[themeName] = themeConfiguration;
             }
 
-            return new ThemeContext(this.themeBase / themeName, themeConfiguration!);
+            return new ThemeContext(themeBase, themeConfiguration!);
         }
     }
 }
