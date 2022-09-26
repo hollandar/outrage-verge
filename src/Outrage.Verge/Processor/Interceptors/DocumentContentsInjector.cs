@@ -3,6 +3,8 @@ using Outrage.TokenParser.Tokens;
 using Outrage.Verge.Configuration;
 using Outrage.Verge.Library;
 using Outrage.Verge.Parser.Tokens;
+using Outrage.Verge.Processor.Html;
+using Outrage.Verge.Processor.Markdown;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,7 +41,7 @@ namespace Outrage.Verge.Processor.Interceptors
                     var pageProcessorFactory = renderContext.ProcessorFactory.Get(contentName.Extension);
                     if (pageProcessorFactory != null)
                     {
-                        var frontmatter = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(contentName);
+                        var frontmatter = renderContext.ContentLibrary.GetFrontmatter<FrontmatterMarkdown>(contentName);
                         var pageRenderContext = renderContext.CreateChildContext();
                         var pageWriter = pageProcessorFactory.BuildContentWriter(pageRenderContext);
                         var contentUri = pageWriter.BuildUri(pageName);

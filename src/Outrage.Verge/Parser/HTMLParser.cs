@@ -10,7 +10,7 @@ public static class HTMLParser
 {
     public static IMatcher Identifier =
         Matcher.Some(
-            Characters.AnyChar.Except(Matcher.Chars('\t', '\n', '\f', '>', '/', '\'', '"', '=', ' ')))
+            Characters.AnyChar.Except(Matcher.Chars('\t', '\r', '\n', '\f', '>', '/', '\'', '"', '=', ' ')))
         .Convert((string value) => new HtmlIdentifierToken(value));
     
     public static IMatcher Variable =
@@ -36,11 +36,16 @@ public static class HTMLParser
         AttributeNameOnly
     );
 
+    public static IMatcher InTagWhitespace = Matcher.FirstOf(
+        Characters.Whitespace,
+        Controls.EndOfLine)
+        .Many();
+
     public static IMatcher OpenTag = Characters.LessThan
         .Then(Identifier)
-        .Then(Characters.Whitespaces.Optional())
-        .Then(Matcher.DelimitedBy(Attribute, Characters.Whitespaces.Ignore()))
-        .Then(Characters.Whitespaces.Optional())
+        .Then(InTagWhitespace.Optional().Ignore())
+        .Then(Matcher.DelimitedBy(Attribute, InTagWhitespace.Ignore()))
+        .Then(InTagWhitespace.Optional().Ignore())
         .Then(Characters.ForwardSlash.Optional().Produce<ContainedCloseTagToken>())
         .Then(Characters.GreaterThan)
         .Wrap((match) => new OpenTagToken(match.Tokens));

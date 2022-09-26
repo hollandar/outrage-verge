@@ -113,30 +113,6 @@ namespace Outrage.Verge.Processor
             await processor.RenderToStream(writer);
         }
 
-        public IDictionary<string, IEnumerable<IToken>> GetTokenGroups(IEnumerable<IToken> tokens)
-        {
-            var result = new Dictionary<string, IEnumerable<IToken>>();
-            var enumerable = new TokenEnumerator(tokens);
-            while (enumerable.MoveNext())
-            {
-                if (enumerable.Current is OpenTagToken)
-                {
-                    var openToken = (OpenTagToken)enumerable.Current;
-                    if (openToken.Closed)
-                    {
-                        result.Add(openToken.NodeName, Enumerable.Repeat(openToken, 1));
-                    }
-                    else
-                    {
-                        var nodeName = openToken.NodeName;
-                        var innerTokens = enumerable.TakeUntil<IToken>((openToken) => openToken is CloseTagToken && ((CloseTagToken)openToken).NodeName == nodeName).ToList();
-                        result.Add(nodeName, innerTokens);
-                    }
-                }
-            }
-
-            return result;
-        }
 
         public IDictionary<string, string> GetComponentMappings()
         {

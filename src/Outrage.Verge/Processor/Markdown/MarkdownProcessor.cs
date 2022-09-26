@@ -34,15 +34,13 @@ namespace Outrage.Verge.Processor.Markdown
             if (!renderContext.ContentLibrary.ContentExists(fallbackContentName))
                 throw new ArgumentException($"{fallbackContentName} is unknown.");
 
-            var markdownFullString = renderContext.ContentLibrary.GetContentString(fallbackContentName);
-            var frontmatterConfig = renderContext.ContentLibrary.GetFrontmatter<FrontmatterConfig>(fallbackContentName);
-
-            content = Markdig.Markdown.ToHtml(markdownFullString);
-            this.sectionContent[frontmatterConfig.Section] = content;
-            this.renderContext.Variables.SetValue("title", frontmatterConfig.Title);
+            var contentItem = renderContext.ContentLibrary.GetFrontmatterAndContent<FrontmatterMarkdown>(fallbackContentName);
+            content = Markdig.Markdown.ToHtml(contentItem.content);
+            this.sectionContent[contentItem.frontmatter.Section] = content;
+            contentItem.frontmatter.Apply(this.renderContext.Variables);
 
 
-            SetDocument(frontmatterConfig?.Template, frontmatterConfig?.Title);
+            SetDocument(contentItem.frontmatter?.Template, contentItem.frontmatter?.Title);
         }
 
         public override async Task RenderToStream(Stream stream)

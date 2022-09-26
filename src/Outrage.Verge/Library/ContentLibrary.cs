@@ -17,12 +17,19 @@ using YamlDotNet.Serialization.NodeTypeResolvers;
 
 namespace Outrage.Verge.Library
 {
+    public class ContentCache
+    {
+        public string frontmatter { get; set; }
+        public string content { get; set; }
+        public object? frontmatterObject { get; set; }
+        public ICollection<IToken>? tokens { get; set; }
+    }
+
     public class ContentLibrary
     {
         static readonly Regex frontmatterRegex = new Regex("^(?:(?<frontmatter>.*?)\r{0,1}\n-{2,}\r{0,1}\n){0,1}(?<content>.*)$", RegexOptions.Singleline | RegexOptions.Compiled);
         private readonly PathBuilder rootPath;
-        private readonly Dictionary<string, IEnumerable<IToken>> tokenCache = new();
-        private readonly Dictionary<string, (string frontmatter, string content)> contentCache = new();
+        private readonly Dictionary<string, ContentCache> contentCache = new();
 
         public ContentLibrary (string rootPath)
         {
@@ -75,12 +82,13 @@ namespace Outrage.Verge.Library
             return content;
         }
 
-        protected (string frontmatter, string content) GetContentAndFrontmatter(ContentName contentName)
+        protected ContentCache GetContentAndFrontmatter(ContentName contentName)
         {
             var contentKey = contentName.Standardized;
             if (contentCache.ContainsKey(contentKey))
             {
-                return contentCache[contentKey];
+                var cacheItem = contentCache[contentKey];
+                return cacheItem;
             }
 
             var content = LoadContent(contentName);
@@ -90,8 +98,9 @@ namespace Outrage.Verge.Library
                 var frontmatterSection = contentMatch.Groups["frontmatter"].Success ? contentMatch.Groups["frontmatter"].Value : String.Empty;
                 var contentSection = contentMatch.Groups["content"].Success ? contentMatch.Groups["content"].Value : String.Empty;
 
-                contentCache[contentKey] = (frontmatterSection, contentSection);
-                return (frontmatterSection, contentSection);
+                var cacheItem = new ContentCache { frontmatter = frontmatterSection, content = contentSection };
+                contentCache[contentKey] = cacheItem;
+                return cacheItem;
             }
 
             throw new ArgumentException($"Could not retrieve content/frontmatter from {contentName}.");
@@ -104,13 +113,23 @@ namespace Outrage.Verge.Library
 
         public TType GetFrontmatter<TType>(ContentName contentName) where TType: new()
         {
-            var frontmatterString = GetFrontmatterString(contentName);
+            var frontmatterString = GetContentAndFrontmatter(contentName);
+
+            if (frontmatterString.frontmatterObject is TType)
+                return (TType)frontmatterString.frontmatterObject;
+
+            TType frontmatter = DeserializeFrontmatter<TType>(frontmatterString);
+            frontmatterString.frontmatterObject = frontmatter;
+            return frontmatter;
+        }
+
+        private TType DeserializeFrontmatter<TType>(ContentCache frontmatterString) where TType : new()
+        {
             var yamlDeserializer = new DeserializerBuilder()
                             .WithNamingConvention(CamelCaseNamingConvention.Instance)
                             .Build();
 
-            var frontmatter = yamlDeserializer.Deserialize<TType>(frontmatterString) ?? new TType();
-
+            var frontmatter = yamlDeserializer.Deserialize<TType>(frontmatterString.frontmatter) ?? new TType();
             return frontmatter;
         }
 
@@ -122,17 +141,49 @@ namespace Outrage.Verge.Library
         public IEnumerable<IToken> GetHtml(ContentName filename)
         {
             var lowerFilename = filename.Standardized;
-            if (tokenCache.ContainsKey(lowerFilename))
+            if (contentCache.ContainsKey(lowerFilename) && contentCache[lowerFilename].tokens != null)
             {
-                return tokenCache[lowerFilename];
+                return contentCache[lowerFilename].tokens!;
             }
 
             var content = GetContentString(filename);
-            var tokens = HTMLParser.Parse(content);
-            this.tokenCache[lowerFilename] = tokens;
+            var tokens = HTMLParser.Parse(content).ToList();
+            var cacheItem = this.contentCache[lowerFilename];
+            this.contentCache[lowerFilename].tokens = tokens;
 
             return tokens;
+        }
 
+        public (TType frontmatter, IEnumerable<IToken> tokens) GetFrontmatterAndHtml<TType>(ContentName filename) where TType : new()
+        {
+            var content = this.GetContentAndFrontmatter(filename);
+            if (content.frontmatterObject is TType && content.tokens != null)
+            {
+                return ((TType)content.frontmatterObject, content.tokens);
+            }
+
+            var tokens = HTMLParser.Parse(content.content).ToList();
+            var frontmatter = DeserializeFrontmatter<TType>(content);
+
+            content.tokens = tokens;
+            content.frontmatterObject = frontmatter;
+
+            return (frontmatter, tokens);
+        }
+
+        public (TType frontmatter, string content) GetFrontmatterAndContent<TType>(ContentName filename) where TType : new()
+        {
+            var content = this.GetContentAndFrontmatter(filename);
+            if (content.frontmatterObject is TType)
+            {
+                return ((TType)content.frontmatterObject, content.content);
+            }
+
+            var frontmatter = DeserializeFrontmatter<TType>(content);
+
+            content.frontmatterObject = frontmatter;
+
+            return (frontmatter, content.content);
         }
 
         public string GetString(ContentName contentName)

@@ -17,6 +17,7 @@ namespace Outrage.Verge.Search
         private static HashSet<char> spaceEquivalent = new HashSet<char> { ' ', '\t', '/', '\n', '\r', '~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '+', '=', '{', '[', '}', ']', ':', ';', '"', '<', ',', '>', '.', '?', '/' };
         private static HashSet<char> punctuation = new HashSet<char> { '\'', ',' };
         private static HashSet<string> inlineTags = new HashSet<string> { "span", "i", "strong", "em" };
+        private static HashSet<string> nosnippet = new HashSet<string> { "div", "span", "section", "header" };
         private readonly List<(string contentUri, ContentName publishName)> publishItems = new();
 
         public Task ContentUpdated(RenderContext renderContext, string contentUri, ContentName publishName)
@@ -119,8 +120,8 @@ namespace Outrage.Verge.Search
             var documentModel = new DocumentModel(documentIndex);
 
             StringBuilder wordBuilder = new StringBuilder();
-            var headerTokens = tokens.GetInnerTokens("head").ToList();
-            var bodyTokens = tokens.GetInnerTokens("body").ToList();
+            var headerTokens = tokens.GetInnerTokens("head");
+            var bodyTokens = tokens.GetInnerTokens("body");
             var words = new Dictionary<string, int>();
 
             if (!bodyTokens.Any())
@@ -129,10 +130,15 @@ namespace Outrage.Verge.Search
             }
 
             documentModel.Title = headerTokens.GetTextValue("title");
-            documentModel.Description = headerTokens.GetTextValue("meta", token => token.HasAttribute("type") && token.GetAttributeValue("type") == "description");
+            var metaDescriptionToken = headerTokens.GetFirstToken("meta", token => token.HasAttribute("name") && token.GetAttributeValue("name") == "description");
+            if (metaDescriptionToken?.HasAttribute("content") ?? false)
+                documentModel.Description = metaDescriptionToken.GetAttributeValue("content");
 
-            foreach (var bodyToken in bodyTokens)
+            var tokenEnumerator = new TokenEnumerator(bodyTokens);
+            while(tokenEnumerator.MoveNext())
             {
+                var bodyToken = tokenEnumerator.Current;
+
                 var progressWord = () =>
                 {
                     if (wordBuilder.Length > 0)
@@ -151,7 +157,18 @@ namespace Outrage.Verge.Search
 
                 };
 
-                if (bodyToken is OpenTagToken && inlineTags.TryGetValue(((OpenTagToken)bodyToken).NodeName, out var _)) continue;
+                if (bodyToken is OpenTagToken)
+                {
+                    var noSnippetToken = (OpenTagToken)bodyToken;
+                    if (nosnippet.Contains(noSnippetToken.NodeName) && noSnippetToken.HasAttribute("data-nosnippet"))
+                    {
+                        tokenEnumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == noSnippetToken.NodeName);
+                        continue;
+                    }
+
+                    if (inlineTags.TryGetValue(noSnippetToken.NodeName, out var _)) continue;
+                }
+
                 if (bodyToken is CloseTagToken && inlineTags.TryGetValue(((CloseTagToken)bodyToken).NodeName, out var _)) continue;
 
                 if (!(bodyToken is StringValueToken))

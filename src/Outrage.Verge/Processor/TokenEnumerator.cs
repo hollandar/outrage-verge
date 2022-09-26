@@ -37,7 +37,12 @@ namespace Outrage.Verge.Processor
             this.enumerator.Reset();
         }
 
-        public IEnumerable<IToken> TakeUntil<TType>(Func<TType?, bool> untilFunc) where TType: IToken
+        public ICollection<IToken> TakeUntil<TType>(Func<TType?, bool> untilFunc) where TType : IToken
+        {
+            return this.EnumerateUntil<TType>(untilFunc).ToList();
+        }
+
+        public IEnumerable<IToken> EnumerateUntil<TType>(Func<TType?, bool> untilFunc) where TType: IToken
         {
             Stack<string> passedTokens = new();
             while (this.enumerator.MoveNext())

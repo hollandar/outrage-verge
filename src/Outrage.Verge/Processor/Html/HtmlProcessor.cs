@@ -42,7 +42,9 @@ namespace Outrage.Verge.Processor.Html
         public void Load(ContentName contentName)
         {
             this.fallbackContentName = this.renderContext.GetFallbackContent(contentName);
-            tokens = renderContext.ContentLibrary.GetHtml(this.fallbackContentName);
+            var frontmatterAndHtml = renderContext.ContentLibrary.GetFrontmatterAndHtml<FrontmatterHtml>(this.fallbackContentName);
+            this.tokens = frontmatterAndHtml.tokens;
+            frontmatterAndHtml.frontmatter?.Apply(this.renderContext.Variables);
 
             Process();
         }
@@ -59,7 +61,7 @@ namespace Outrage.Verge.Processor.Html
                     var openToken = (OpenTagToken)token;
                     if (openToken.NodeName == Constants.DefineSectionTag)
                     {
-                        DefineSection(openToken, enumerator.TakeUntil<CloseTagToken>(endSection => endSection?.NodeName == Constants.DefineSectionTag));
+                        DefineSection(openToken, enumerator.EnumerateUntil<CloseTagToken>(endSection => endSection?.NodeName == Constants.DefineSectionTag));
                     }
                     else if (openToken.NodeName == Constants.DocumentTag)
                     {
@@ -146,7 +148,7 @@ namespace Outrage.Verge.Processor.Html
                     }
                     else if (openTagToken.NodeName == Constants.DefineSectionTag)
                     {
-                        enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == Constants.DefineSectionTag).ToList();
+                        enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == Constants.DefineSectionTag);
                         continue;
                     }
                     else if (openTagToken.NodeName == Constants.DocumentTag)
@@ -157,7 +159,7 @@ namespace Outrage.Verge.Processor.Html
                     {
                         var innerTokens = Enumerable.Empty<IToken>();
                         if (!openTagToken.Closed)
-                            innerTokens = enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == openTagToken.NodeName).ToList();
+                            innerTokens = enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == openTagToken.NodeName);
 
                         var interceptorResult = await renderContext.InterceptorFactory.RenderInterceptorAsync(renderContext, openTagToken, innerTokens, writer);
                         if (interceptorResult != null)

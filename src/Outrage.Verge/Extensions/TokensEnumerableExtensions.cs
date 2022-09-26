@@ -29,7 +29,25 @@ namespace Outrage.Verge.Extensions
             return valueBuilder.ToString();
         }
 
-        public static IEnumerable<TokenParser.IToken> GetInnerTokens(this IEnumerable<IToken> tokens, string nodeName, Func<OpenTagToken, bool>? match = null) {
+        public static OpenTagToken? GetFirstToken(this IEnumerable<IToken> tokens, string nodeName, Func<OpenTagToken, bool>? match = null)
+        {
+            foreach (var token in tokens)
+            {
+                if (token is OpenTagToken && (match == null || match((OpenTagToken)token)))
+                {
+                    return (OpenTagToken)token;
+                }
+            }
+
+            return null;
+        }
+
+        public static ICollection<TokenParser.IToken> GetInnerTokens(this IEnumerable<IToken> tokens, string nodeName, Func<OpenTagToken, bool>? match = null)
+        {
+            return EnumerateInnerTokens(tokens, nodeName, match).ToList();
+        }
+
+        public static IEnumerable<TokenParser.IToken> EnumerateInnerTokens(this IEnumerable<IToken> tokens, string nodeName, Func<OpenTagToken, bool>? match = null) {
             bool yielding = false;
             Stack<string> nodeNames = new();
             foreach (var token in tokens)

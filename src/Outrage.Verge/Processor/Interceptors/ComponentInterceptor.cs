@@ -43,7 +43,6 @@ namespace Outrage.Verge.Processor.Interceptors
             }
 
             var fallbackContentName = renderContext.GetFallbackContent(contentName);
-            var innerSections = renderContext.GetTokenGroups(tokens);
             var innerTokens = renderContext.ContentLibrary.GetHtml(fallbackContentName);
 
             var childRenderContext = renderContext.CreateChildContext();
@@ -56,6 +55,7 @@ namespace Outrage.Verge.Processor.Interceptors
             List<IToken> componentTokens = new List<IToken>();
             if (innerTokens.Any(r => (r as OpenTagToken)?.NodeName == "Slot"))
             {
+                var singleSlot = innerTokens.Where(r => r is OpenTagToken).Cast<OpenTagToken>().Where(r => r.NodeName == "Slot").Count() == 1;
                 var enumerator = innerTokens.GetEnumerator();
                 while (enumerator.MoveNext())
                 {
@@ -65,9 +65,12 @@ namespace Outrage.Verge.Processor.Interceptors
                         if (!slotTag.Closed)
                             throw new ArgumentException($"Slot tag must be closed, processing {contentName}");
                         var slotName = slotTag.GetAttributeValue("name");
-                        if (innerSections.ContainsKey(slotName))
+                        var tokenGroup = GetTokenGroup(tokens, slotName);
+                        if (tokenGroup != null)
+                            componentTokens.AddRange(tokenGroup);
+                        else if (singleSlot && slotName == "Body")
                         {
-                            componentTokens.AddRange(innerSections[slotName]);
+                            componentTokens.AddRange(tokens);
                         }
                     }
                     else
@@ -84,5 +87,35 @@ namespace Outrage.Verge.Processor.Interceptors
 
             return null;
         }
+
+        public IEnumerable<IToken>? GetTokenGroup(IEnumerable<IToken> tokens, string nodeName)
+        {
+            var result = new Dictionary<string, IEnumerable<IToken>>();
+            var enumerable = new TokenEnumerator(tokens);
+            while (enumerable.MoveNext())
+            {
+                if (enumerable.Current is OpenTagToken)
+                {
+                    var openToken = (OpenTagToken)enumerable.Current;
+                    if (openToken.NodeName == nodeName && openToken.Attributes.Count == 0)
+                    {
+                        if (openToken.Closed)
+                        {
+                            return Enumerable.Repeat(openToken, 1);
+                        }
+                        else
+                        {
+                            return enumerable.TakeUntil<CloseTagToken>((closeToken) => closeToken is CloseTagToken && closeToken.NodeName == nodeName);
+                        }
+                    } else
+                    {
+                        enumerable.TakeUntil<CloseTagToken>((closeToken) => closeToken.NodeName == openToken.NodeName);
+                    }
+                }
+            }
+
+            return null;
+        }
+
     }
 }
