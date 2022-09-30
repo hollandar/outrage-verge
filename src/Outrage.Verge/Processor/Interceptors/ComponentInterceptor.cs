@@ -45,13 +45,7 @@ namespace Outrage.Verge.Processor.Interceptors
             var fallbackContentName = renderContext.GetFallbackContent(contentName);
             var innerTokens = renderContext.ContentLibrary.GetHtml(fallbackContentName);
 
-            var childRenderContext = renderContext.CreateChildContext();
-            var otherAttributes = openTag.Attributes.Where(r => r.AttributeName != "name");
-            foreach (var otherAttribute in otherAttributes)
-            {
-                childRenderContext.Variables.SetValue($"_{otherAttribute.AttributeName}", otherAttribute.AttributeValue);
-            }
-
+            var childRenderContext = renderContext.CreateChildContext(localAttributes: openTag.Attributes);
             List<IToken> componentTokens = new List<IToken>();
             if (innerTokens.Any(r => (r as OpenTagToken)?.NodeName == "Slot"))
             {

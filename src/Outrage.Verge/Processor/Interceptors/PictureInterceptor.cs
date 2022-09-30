@@ -51,7 +51,8 @@ namespace Outrage.Verge.Processor.Interceptors
                 ("srcset", String.Join(", ", srcSetItems)),
                 ("src", srcValue)
             );
-            await renderContext.RenderComponent("components/picture.c.html", variables, writer);
+            var childRenderContext = renderContext.CreateChildContext(openTag.Attributes, variables);
+            await childRenderContext.RenderComponent("components/picture.c.html", writer);
 
             return null;
         }

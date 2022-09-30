@@ -15,6 +15,7 @@ namespace Outrage.Verge.Processor
 {
     public class Variables
     {
+        private Variables? parent = null;
         private readonly Dictionary<string, object?> values = new();
 
         public Variables(IDictionary<string, object?> variables)
@@ -41,9 +42,9 @@ namespace Outrage.Verge.Processor
             }
         }
 
-        public Variables(Variables variables) : this(variables.values)
+        public Variables(Variables variables, Variables? parent = null) : this(variables.values)
         {
-
+            this.parent = parent;
         }
 
         public Variables Combine(Variables? variables)
@@ -60,6 +61,10 @@ namespace Outrage.Verge.Processor
             return result;
         }
 
+        public bool HasParent => this.parent != null;
+        public Variables? Parent => this.parent;
+        public IDictionary<string, object?> Locals => this.values;
+
         public bool HasValue(string name)
         {
             if (name.Contains('.'))
@@ -69,12 +74,12 @@ namespace Outrage.Verge.Processor
                 return this.HasValue(variableName);
             }
             else
-                return this.values.ContainsKey(name);
+                return this.values.ContainsKey(name) || (parent?.HasValue(name) ?? false);
         }
 
         public object? GetValue(string name)
         {
-            return GetValue<object?>(name);
+            return GetValue<object?>(name) ?? parent?.GetValue(name) ?? null;
         }
 
         private object? TraverseModel(object? model, IEnumerable<string> additionalElements)
@@ -162,8 +167,13 @@ namespace Outrage.Verge.Processor
             }
             else
             {
-                if (this.values.TryGetValue(name, out var result))
-                    return (T?)result;
+                if (this.values.TryGetValue(name, out var valueResult))
+                {
+                    return (T?)valueResult;
+                }
+                else if (this.parent != null) {
+                    return this.parent.GetValue<T>(name);
+                }
                 else
                     throw new ArgumentException($"Variable {name} is undefined.");
             }

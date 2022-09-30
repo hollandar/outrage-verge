@@ -34,9 +34,9 @@ namespace Outrage.Verge.Processor.Interceptors
                 renderContext.Variables.SetValue(name, model);
             } else
             {
-                var variables = new Variables(renderContext.Variables);
+                var variables = Variables.Empty;
                 variables.SetValue(name, model);
-                var nrc = renderContext.CreateChildContext(variables);
+                var nrc = renderContext.CreateChildContext(openTag.Attributes, variables);
                 var processor = new HtmlProcessor(tokens, nrc);
                 await processor.RenderToStream(writer);
             }

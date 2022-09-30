@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,7 +41,7 @@ namespace Outrage.Verge.Processor
             ProcessorFactory = new ProcessorFactory(this.buildContext.ServiceProvider);
 
             var variables = new Dictionary<string, object?>();
-            if (SiteConfiguration.Theme != null )
+            if (SiteConfiguration.Theme != null)
             {
                 var theme = this.buildContext.ThemesFactory.Get(SiteConfiguration.Theme);
                 if (theme == null)
@@ -72,13 +73,22 @@ namespace Outrage.Verge.Processor
             this.contentGenerators = renderContext.contentGenerators;
             this.logger = renderContext.logger;
 
-            Variables = renderContext.Variables.Combine(variables);
+            Variables = variables;
         }
 
-        public RenderContext CreateChildContext(Variables? variables = null)
+        public RenderContext CreateChildContext(List<AttributeToken>? localAttributes = null, Variables? localVariables = null)
         {
+            var childVariables = localVariables ?? Variables.Empty;
+            if (localAttributes != null) foreach (var token in localAttributes)
+            {
+                if (!childVariables.HasValue(token.AttributeName))
+                {
+                    childVariables.SetValue(token.AttributeName, token.AttributeValue);
+                }
+            }
+            var variables = new Variables(childVariables, this.Variables);
             var renderContext = new RenderContext(
-                this, variables ?? this.Variables
+                this, variables
             );
             return renderContext;
         }
@@ -105,11 +115,10 @@ namespace Outrage.Verge.Processor
                 }
         }
 
-        public async Task RenderComponent(ContentName componentName, Variables variables, StreamWriter writer)
+        public async Task RenderComponent(ContentName componentName, StreamWriter writer)
         {
             var componentContent = ProcessorFactory.Get(componentName.Extension);
-            var childRenderContext = CreateChildContext(variables);
-            var processor = componentContent.BuildProcessor(componentName, childRenderContext);
+            var processor = componentContent.BuildProcessor(componentName, this);
             await processor.RenderToStream(writer);
         }
 

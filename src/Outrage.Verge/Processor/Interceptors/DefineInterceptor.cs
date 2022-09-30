@@ -28,11 +28,11 @@ namespace Outrage.Verge.Processor.Interceptors
             }
             else
             {
-                var variables = new Variables(renderContext.Variables);
-                if ((ifUndefined && !variables.HasValue(name)) || !ifUndefined)
+                var variables = Variables.Empty;
+                if ((ifUndefined && !renderContext.Variables.HasValue(name)) || !ifUndefined)
                     variables.SetValue(name, value);
 
-                var nrc = renderContext.CreateChildContext(variables);
+                var nrc = renderContext.CreateChildContext(openTag.Attributes, variables);
                 var processor = new HtmlProcessor(tokens, nrc);
                 await processor.RenderToStream(writer);
             }

@@ -168,8 +168,8 @@ In the HTML for the Patternfly theme, you will find the following markup which u
     <ul class="pf-c-nav__list">
         <ForEach name="item" in="menu.menuItems">
             <OnLink uri="$(item.link)" currentClass="pf-m-current">
-                <li class="pf-c-nav__item $(_currentClass)">
-                    <a href="$(_uri)" class="pf-c-nav__link">$(item.label)</a>
+                <li class="pf-c-nav__item $(currentClass)">
+                    <a href="$(uri)" class="pf-c-nav__link">$(item.label)</a>
                 </li>
             </OnLink>
         </ForEach>
@@ -194,7 +194,7 @@ Variables in the HTML are defined by interceptors and used as follows: `$(variab
  * **Include** - Include an html template at this location.  `<Include name="include/includeme.t.html"/>`
  * **Json** - Load an object from a json file. <Json name="variableName" from="data/file.json"/>
  * **Markdown** - Load markdown from a content file, and render it as html. `<Markdown name="md/markdown.t.md"/>`
- * **OnLink** - Set variables for the parameters if we are on the page referred to by the uri parameter. `<OnLink uri="/" setVariable="atHome">$(_uri)</OnLink>`
+ * **OnLink** - Set variables for the parameters if we are on the page referred to by the uri parameter. `<OnLink uri="/" setVariable="atHome">$(uri)</OnLink>`
  * **Picture** - Render an image using a picture tag, with srcset's for multiple resolutions.  The image is resized automatically and stored in the rendered output.  `<Picture src="/static/image.jpg"/>`. Src is the published path, rather than the site input path.
  * **Require** - Require that a variable be set, throw a build error if it isnt.
 

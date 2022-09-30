@@ -86,7 +86,29 @@ public class OpenTagToken : IToken
             tagBuilder.Append(" ");
             tagBuilder.Append(String.Join(" ", Attributes.Select(r =>
             {
-                if (String.IsNullOrWhiteSpace(r.AttributeValue))
+                if (r.AttributeName== "@attributes")
+                {
+                    var except = new HashSet<string>(r.AttributeValue.Split(",").Select(r => r.Trim()));
+                    var localVariables = variables.Locals;
+                    var localAttributes = new List<AttributeToken>();
+                    foreach (var local in localVariables)
+                    {
+                        var isAttribute = Attributes?.Where(r => r.AttributeName == local.Key).Any() ?? false;
+                        var isExcluded = except.Contains(local.Key);
+                        if (!isAttribute && !isExcluded)
+                            localAttributes.Add(new AttributeToken(local.Key, local.Value?.ToString()));
+                    }
+                    return String.Join(" ", localAttributes.Select(r => { 
+                        if (r.AttributeValue == null)
+                        {
+                            return r.AttributeName;
+                        } else
+                        {
+                            return $"{r.AttributeName}=\"{variables.ReplaceVariables(r.AttributeValue)}\"";
+                        }
+                    }));
+
+                } else if (String.IsNullOrWhiteSpace(r.AttributeValue))
                 {
                     return r.AttributeName;
                 }
@@ -95,6 +117,7 @@ public class OpenTagToken : IToken
                     return $"{r.AttributeName}=\"{variables.ReplaceVariables(r.AttributeValue)}\"";
                 }
             })));
+
         }
 
         if (Closed)

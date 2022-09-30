@@ -24,16 +24,14 @@ public class OnLinkInterceptor : IInterceptor
 
         var variables = Variables.Empty;
         if (uri == pageUri)
-        {
             foreach (var attribute in openTag.Attributes)
             {
-                variables.SetValue($"_{attribute.AttributeName}", attribute.AttributeValue);
+                variables.SetValue($"{attribute.AttributeName}", attribute.AttributeValue);
             }
-        }
-        else
-            variables.SetValue("_uri", uri);
 
-        var childRenderContext = renderContext.CreateChildContext(variables);
+        variables.SetValue("uri", uri);
+
+        var childRenderContext = renderContext.CreateChildContext(null, variables);
         var htmlProcessor = new HtmlProcessor(tokens, childRenderContext);
         await htmlProcessor.RenderToStream(writer);
 
