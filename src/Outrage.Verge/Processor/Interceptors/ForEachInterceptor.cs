@@ -50,20 +50,23 @@ namespace Outrage.Verge.Processor.Interceptors
                     var enumerator = collection.GetEnumerator();
                     var skipIndex = -1;
                     var takenCount = 0;
+                    var headerRendered = false;
                     while (enumerator.MoveNext())
                     {
-                        if (skipIndex == -1)
-                        {
-                            var processor = parentProcessor.MakeChild(headerTokens, renderContext);
-                            await processor.RenderToStream(writer);
-                        }
 
                         skipIndex++;
                         if (skipIndex < (skip ?? 0))
                         {
                             continue;
                         }
-                        
+
+                        if (headerTokens.Any() && !headerRendered)
+                        {
+                            var processor = parentProcessor.MakeChild(headerTokens, renderContext);
+                            await processor.RenderToStream(writer);
+                            headerRendered = true;
+                        }
+
                         if (takenCount < (take ?? int.MaxValue))
                         {
                             var variables = Variables.Empty;
