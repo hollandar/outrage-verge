@@ -16,7 +16,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "Require";
         }
 
-        public Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var name = openTag.GetAttributeValue<string>("name");
             if (!renderContext.Variables.HasValue(name))

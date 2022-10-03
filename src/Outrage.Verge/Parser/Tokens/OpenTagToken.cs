@@ -40,11 +40,16 @@ public class OpenTagToken : IToken
 
     public TAs GetAttributeValue<TAs>(string name)
     {
+        var underlying = Nullable.GetUnderlyingType(typeof(TAs));
+        if (!HasAttribute(name) && underlying != null)
+        {
+            return default(TAs);
+        }
+
         var attribute = this.Attributes?.Where(r => r.AttributeName == name).FirstOrDefault();
         if (attribute == null)
             throw new ArgumentException($"An attribute with name {name} does not exist.");
 
-        var underlying = Nullable.GetUnderlyingType(typeof(TAs));
         var newValue = Convert.ChangeType(attribute.AttributeValue, underlying ?? typeof(TAs));
         return (TAs)newValue;
     }

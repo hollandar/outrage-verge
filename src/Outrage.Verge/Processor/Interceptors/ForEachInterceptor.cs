@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Outrage.TokenParser;
+using Outrage.Verge.Extensions;
 using Outrage.Verge.Parser.Tokens;
 using Outrage.Verge.Processor.Html;
 using System;
@@ -23,11 +24,20 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "ForEach";
         }
 
-        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var name = openTag.GetAttributeValue<string>("name");
             var from = openTag.GetAttributeValue<string>("in");
+            var skip = openTag.GetAttributeValue<int?>("skip");
+            var take = openTag.GetAttributeValue<int?>("take");
 
+            var headerTokens = tokens.GetInnerTokens("ItemTemplate");
+            var templateTokens = tokens.GetInnerTokens("ItemTemplate");
+            var noneTokens = tokens.GetInnerTokens("NotFound");
+
+            if (headerTokens.Count == 0 && templateTokens.Count == 0 && noneTokens.Count == 0)
+                templateTokens = tokens.ToList();
+            
             if (openTag.Closed)
             {
                 throw new ArgumentException("A ForEach tag should not be self closing.");
@@ -38,13 +48,36 @@ namespace Outrage.Verge.Processor.Interceptors
                 if (collection != null)
                 {
                     var enumerator = collection.GetEnumerator();
+                    var skipIndex = -1;
+                    var takenCount = 0;
                     while (enumerator.MoveNext())
                     {
+                        if (skipIndex == -1)
+                        {
+                            var processor = parentProcessor.MakeChild(headerTokens, renderContext);
+                            await processor.RenderToStream(writer);
+                        }
 
-                        var variables = Variables.Empty;
-                        variables.SetValue(name, enumerator.Current);
-                        var nrc = renderContext.CreateChildContext(openTag.Attributes, variables);
-                        var processor = new HtmlProcessor(tokens, nrc);
+                        skipIndex++;
+                        if (skipIndex < (skip ?? 0))
+                        {
+                            continue;
+                        }
+                        
+                        if (takenCount < (take ?? int.MaxValue))
+                        {
+                            var variables = Variables.Empty;
+                            variables.SetValue(name, enumerator.Current);
+                            var nrc = renderContext.CreateChildContext(openTag.Attributes, variables);
+                            var processor = parentProcessor.MakeChild(templateTokens, nrc);
+                            await processor.RenderToStream(writer);
+                            takenCount++;
+                        }
+                    }
+
+                    if (skipIndex == -1)
+                    {
+                        var processor = parentProcessor.MakeChild(noneTokens, renderContext);
                         await processor.RenderToStream(writer);
                     }
                 }

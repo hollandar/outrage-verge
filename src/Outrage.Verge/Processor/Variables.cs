@@ -97,7 +97,7 @@ namespace Outrage.Verge.Processor
             }
             else
             {
-                throw new ArgumentException($"{name} is node defined on model {model?.ToString() ?? "Undefined"}.");
+                return null;
             }
         }
 
@@ -148,7 +148,8 @@ namespace Outrage.Verge.Processor
                 }
             }
 
-            throw new ArgumentException($"Could not find property {elementName}.");
+            return null;
+            //throw new ArgumentException($"Could not find property {elementName}.");
         }
 
         public T? GetValue<T>(string name)
@@ -171,11 +172,12 @@ namespace Outrage.Verge.Processor
                 {
                     return (T?)valueResult;
                 }
-                else if (this.parent != null) {
+                else if (this.parent != null)
+                {
                     return this.parent.GetValue<T>(name);
                 }
                 else
-                    throw new ArgumentException($"Variable {name} is undefined.");
+                    return default(T);
             }
         }
 

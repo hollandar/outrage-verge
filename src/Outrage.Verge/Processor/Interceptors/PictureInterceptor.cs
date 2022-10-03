@@ -2,6 +2,7 @@
 using Outrage.Verge.Extensions;
 using Outrage.Verge.Library;
 using Outrage.Verge.Parser.Tokens;
+using Outrage.Verge.Processor.Html;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,7 +20,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "Picture";
         }
 
-        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var src = openTag.GetAttributeValue<string>("src");
             var srcValue = renderContext.Variables.ReplaceVariables(src);

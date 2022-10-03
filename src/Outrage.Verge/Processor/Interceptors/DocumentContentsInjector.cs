@@ -20,7 +20,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "DocumentContents";
         }
 
-        public Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             ContentName? pathAttributeValue = null;
             if (openTag.HasAttribute("path"))

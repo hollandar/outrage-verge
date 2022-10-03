@@ -12,7 +12,7 @@ public class OnLinkInterceptor : IInterceptor
         return name == "OnLink";
     }
 
-    public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+    public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
     {
         var uri = openTag.GetAttributeValue<string?>("uri")?.ReplaceVariables(renderContext.Variables);
         if (string.IsNullOrWhiteSpace(uri))
@@ -32,7 +32,7 @@ public class OnLinkInterceptor : IInterceptor
         variables.SetValue("uri", uri);
 
         var childRenderContext = renderContext.CreateChildContext(null, variables);
-        var htmlProcessor = new HtmlProcessor(tokens, childRenderContext);
+        var htmlProcessor = parentProcessor.MakeChild(tokens, childRenderContext);
         await htmlProcessor.RenderToStream(writer);
 
         return null;

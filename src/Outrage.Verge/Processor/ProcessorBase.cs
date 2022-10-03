@@ -1,4 +1,5 @@
-﻿using Outrage.Verge.Parser.Tokens;
+﻿using Outrage.TokenParser;
+using Outrage.Verge.Parser.Tokens;
 using Outrage.Verge.Processor.Html;
 using Outrage.Verge.Processor.Markdown;
 using System;
@@ -67,5 +68,10 @@ namespace Outrage.Verge.Processor
         public abstract Task RenderToStream(StreamWriter stream);
 
         public abstract Task RenderSection(OpenTagToken openTag, StreamWriter writer);
+
+        public virtual IProcessor MakeChild(IEnumerable<IToken> tokens, RenderContext renderContext)
+        {
+            throw new NotSupportedException($"The processor {this.GetType()} does not support child processors.");
+        }
     }
 }

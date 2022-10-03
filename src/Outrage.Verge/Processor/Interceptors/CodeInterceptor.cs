@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using Outrage.TokenParser;
 using Outrage.TokenParser.Tokens;
 using Outrage.Verge.Parser.Tokens;
+using Outrage.Verge.Processor.Html;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,7 +24,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "Code";
         }
 
-        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var codeBuilder = new StringBuilder();
             foreach (var stringValue in tokens.OfType<StringValueToken>())

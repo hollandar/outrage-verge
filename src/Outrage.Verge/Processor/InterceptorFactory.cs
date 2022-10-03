@@ -8,13 +8,14 @@ using System.Text;
 using System.Threading.Tasks;
 using Outrage.Verge.Library;
 using Microsoft.Extensions.DependencyInjection;
+using Outrage.Verge.Processor.Html;
 
 namespace Outrage.Verge.Processor
 {
     public interface IInterceptor
     {
         bool CanHandle(RenderContext renderContext, string name);
-        Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer);
+        Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer);
     }
 
     public class InterceptorResult
@@ -65,13 +66,13 @@ namespace Outrage.Verge.Processor
             return GetInterceptor(renderContext, tagName) != null;
         }
 
-        public async Task<InterceptorResult?> RenderInterceptorAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderInterceptorAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             if (!IsDefined(renderContext, openTag.NodeName))
                 throw new ArgumentException($"No interceptor is defined for {openTag.NodeName}.");
 
             var interceptor = GetInterceptor(renderContext, openTag.NodeName);
-            return await interceptor!.RenderAsync(renderContext, openTag, tokens, writer);
+            return await interceptor!.RenderAsync(parentProcessor, renderContext, openTag, tokens, writer);
         }
     }
 }

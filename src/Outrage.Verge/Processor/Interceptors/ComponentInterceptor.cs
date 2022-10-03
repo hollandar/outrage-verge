@@ -29,7 +29,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "Component" || (componentStructureMap?.ContainsKey(tagName) ?? false);
         }
 
-        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             string contentName;
             GetComponentStructureMap(renderContext);
@@ -75,8 +75,8 @@ namespace Outrage.Verge.Processor.Interceptors
             }
             else
                 componentTokens.AddRange(innerTokens);
-
-            var htmlProcessor = new HtmlProcessor(componentTokens, childRenderContext);
+            
+            var htmlProcessor = parentProcessor.MakeChild(componentTokens, childRenderContext);
             await htmlProcessor.RenderToStream(writer);
 
             return null;

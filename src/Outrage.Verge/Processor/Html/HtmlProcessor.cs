@@ -33,10 +33,31 @@ namespace Outrage.Verge.Processor.Html
             Load(contentName);
         }
 
-        public HtmlProcessor(IEnumerable<IToken> tokens, RenderContext renderContext) : base(renderContext)
+        protected HtmlProcessor(IProcessor childProcessor, IEnumerable<IToken> tokens, RenderContext renderContext) : base(renderContext, childProcessor)
         {
             this.tokens = tokens;
             Process();
+        }
+
+        protected HtmlProcessor(IEnumerable<IToken> tokens, RenderContext renderContext) : base(renderContext)
+        {
+            this.tokens = tokens;
+            Process();
+        }
+
+        public override IProcessor MakeChild(IEnumerable<IToken> tokens, RenderContext renderContext)
+        {
+            HtmlProcessor childProcessor;
+            if (this.childPage != null)
+            {
+                childProcessor = new HtmlProcessor(this.childPage, tokens, renderContext);
+            }
+            else
+            {
+                childProcessor = new HtmlProcessor(tokens, renderContext);
+            }
+
+            return childProcessor;
         }
 
         public void Load(ContentName contentName)
@@ -161,7 +182,7 @@ namespace Outrage.Verge.Processor.Html
                         if (!openTagToken.Closed)
                             innerTokens = enumerator.TakeUntil<CloseTagToken>(token => token?.NodeName == openTagToken.NodeName);
 
-                        var interceptorResult = await renderContext.InterceptorFactory.RenderInterceptorAsync(renderContext, openTagToken, innerTokens, writer);
+                        var interceptorResult = await renderContext.InterceptorFactory.RenderInterceptorAsync(this, renderContext, openTagToken, innerTokens, writer);
                         if (interceptorResult != null)
                         {
                             if (interceptorResult.Tokens?.Any() ?? false)

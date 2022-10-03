@@ -22,7 +22,7 @@ namespace Outrage.Verge.Processor.Interceptors
             return tagName == "Json";
         }
 
-        public async Task<InterceptorResult?> RenderAsync(RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
+        public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
             var name = openTag.GetAttributeValue<string>("name");
             var from = openTag.GetAttributeValue<string>("from");
@@ -37,7 +37,7 @@ namespace Outrage.Verge.Processor.Interceptors
                 var variables = Variables.Empty;
                 variables.SetValue(name, model);
                 var nrc = renderContext.CreateChildContext(openTag.Attributes, variables);
-                var processor = new HtmlProcessor(tokens, nrc);
+                var processor = parentProcessor.MakeChild(tokens, nrc);
                 await processor.RenderToStream(writer);
             }
 

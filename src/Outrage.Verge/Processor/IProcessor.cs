@@ -1,4 +1,5 @@
-﻿using Outrage.Verge.Parser.Tokens;
+﻿using Outrage.TokenParser;
+using Outrage.Verge.Parser.Tokens;
 
 namespace Outrage.Verge.Processor
 {
@@ -7,5 +8,6 @@ namespace Outrage.Verge.Processor
         Task RenderToStream(Stream stream);
         Task RenderToStream(StreamWriter stream);
         Task RenderSection(OpenTagToken openTag, StreamWriter writer);
+        IProcessor MakeChild(IEnumerable<IToken> tokens, RenderContext renderContext);
     }
 }
