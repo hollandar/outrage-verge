@@ -117,6 +117,7 @@ namespace Outrage.Verge.Processor
             var themeContext = this.buildContext.ThemesFactory.Get(this.renderContext.SiteConfiguration.Theme);
             if (themeContext != null)
             {
+                copyInstructions.Clear();
                 copyFromPath = themeContext.ThemeBase;
                 copyInstructions.AddRange(themeContext.Configuration.Copy);
                 await CopyWithFallback(copied, copyInstructions, copyFromPath);
@@ -127,6 +128,7 @@ namespace Outrage.Verge.Processor
                 var libraryContext = library.Get();
                 if (libraryContext != null)
                 {
+                    copyInstructions.Clear();
                     copyFromPath = libraryContext.LibraryBase;
                     copyInstructions.AddRange(libraryContext.LibConfiguration.Copy);
                     await CopyWithFallback(copied, copyInstructions, copyFromPath);

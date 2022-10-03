@@ -24,8 +24,8 @@ namespace Outrage.Verge.Processor.Interceptors
             var src = openTag.GetAttributeValue<string>("src");
             var srcValue = renderContext.Variables.ReplaceVariables(src);
             var sizes = new Size[] {
-                new Size (720),
-                new Size (1024),
+                new Size(720),
+                new Size(1024),
                 new Size(1080),
                 new Size(1440),
                 new Size(1920),
