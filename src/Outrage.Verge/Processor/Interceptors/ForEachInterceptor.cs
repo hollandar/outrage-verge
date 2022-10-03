@@ -78,7 +78,7 @@ namespace Outrage.Verge.Processor.Interceptors
                         }
                     }
 
-                    if (skipIndex == -1)
+                    if (takenCount == 0)
                     {
                         var processor = parentProcessor.MakeChild(noneTokens, renderContext);
                         await processor.RenderToStream(writer);
