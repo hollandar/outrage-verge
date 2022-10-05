@@ -26,7 +26,9 @@ namespace Outrage.Verge.Processor.Interceptors
         {
             var name = openTag.GetAttributeValue<string>("name");
             var from = openTag.GetAttributeValue<string>("from");
-            var content = renderContext.ContentLibrary.GetContentString(renderContext.GetRelativeContentName(from));
+            var fromVariable = renderContext.Variables.ReplaceVariables(from);
+
+            var content = renderContext.ContentLibrary.GetContentString(renderContext.GetRelativeContentName(fromVariable));
 
             var model = JsonConvert.DeserializeObject<JObject>(content);
             if (openTag.Closed)

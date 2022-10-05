@@ -47,44 +47,42 @@ namespace Outrage.Verge.Extensions
             return EnumerateInnerTokens(tokens, nodeName, match).ToList();
         }
 
-        public static IEnumerable<TokenParser.IToken> EnumerateInnerTokens(this IEnumerable<IToken> tokens, string nodeName, Func<OpenTagToken, bool>? match = null) {
+        public static IEnumerable<TokenParser.IToken> EnumerateInnerTokens(this IEnumerable<IToken> tokens, string nodeName, Func<OpenTagToken, bool>? match = null)
+        {
             bool yielding = false;
             Stack<string> nodeNames = new();
             foreach (var token in tokens)
             {
-                if (!yielding)
+                if (token is OpenTagToken)
                 {
-                    if (token is OpenTagToken && ((OpenTagToken)token).NodeName == nodeName && (match == null || match((OpenTagToken)token)))
+                    var openTagToken = (OpenTagToken)token;
+                    nodeNames.Push(((OpenTagToken)token).NodeName);
+
+                    if (!yielding && nodeNames.Count == 1 && ((OpenTagToken)token).NodeName == nodeName && (match == null || match((OpenTagToken)token)))
                     {
-                        nodeNames.Push(((OpenTagToken)token).NodeName);
                         yielding = true;
                         continue;
                     }
+
                 }
-                else
+
+                if (token is CloseTagToken)
                 {
-                    if (token is OpenTagToken)
-                    {
-                        var openTagToken = (OpenTagToken)token;
-                        nodeNames.Push(openTagToken.NodeName);
-                    }
+                    var closeTagToken = (CloseTagToken)token;
 
-                    if (token is CloseTagToken)
-                    {
-                        var closeTagToken = (CloseTagToken)token;
-
-                        if (!nodeNames.Contains(closeTagToken.NodeName))
-                            throw new Exception($"{closeTagToken.ToString()} is unblanaced.");
-                        while (nodeNames.Count > 0 && nodeNames.Peek() != closeTagToken.NodeName) 
-                            nodeNames.Pop();
+                    if (!nodeNames.Contains(closeTagToken.NodeName))
+                        throw new Exception($"{closeTagToken.ToString()} is unblanaced.");
+                    while (nodeNames.Count > 0 && nodeNames.Peek() != closeTagToken.NodeName)
                         nodeNames.Pop();
-                        if (nodeNames.Count == 0)
-                            break;
-                    }
-
-                    yield return token;
+                    nodeNames.Pop();
+                    if (nodeNames.Count == 0)
+                        yielding = false;
                 }
+
+                if (yielding)
+                    yield return token;
             }
         }
     }
 }
+

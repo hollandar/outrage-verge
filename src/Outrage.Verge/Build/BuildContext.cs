@@ -86,9 +86,20 @@ namespace Outrage.Verge.Build
         {
             var componentMappings = new Dictionary<string, string>();
             var themeVariables = new Variables(variables);
-            themeVariables.SetValue("themesPath", this.BuildConfiguration?.ThemesFallback);
+            
 
-            foreach (var fallback in this.BuildConfiguration?.FallbackPaths.Reverse() ?? Enumerable.Empty<String>())
+            var fallbackPaths = new List<string>();
+            if (this.BuildConfiguration?.FallbackPaths != null) 
+                fallbackPaths.AddRange(
+                    this.BuildConfiguration.FallbackPaths.Reverse().Select(r => variables.ReplaceVariables(r)).ToArray()
+                );
+            
+            if (this.BuildConfiguration?.ThemesFallback != null) 
+                fallbackPaths.Add(
+                    variables.ReplaceVariables(this.BuildConfiguration.ThemesFallback)
+                );
+            
+            foreach (var fallback in fallbackPaths)
             {
                 var fallbackPath = ContentName.From(themeVariables.ReplaceVariables(fallback));
                 var fallbackName = fallbackPath / "components";

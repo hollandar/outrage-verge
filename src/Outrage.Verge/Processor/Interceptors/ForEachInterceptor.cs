@@ -31,7 +31,7 @@ namespace Outrage.Verge.Processor.Interceptors
             var skip = openTag.GetAttributeValue<int?>("skip");
             var take = openTag.GetAttributeValue<int?>("take");
 
-            var headerTokens = tokens.GetInnerTokens("ItemTemplate");
+            var headerTokens = tokens.GetInnerTokens("Header");
             var templateTokens = tokens.GetInnerTokens("ItemTemplate");
             var noneTokens = tokens.GetInnerTokens("NotFound");
 
