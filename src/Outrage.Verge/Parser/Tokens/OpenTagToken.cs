@@ -41,7 +41,8 @@ public class OpenTagToken : IToken
     public TAs GetAttributeValue<TAs>(string name)
     {
         var underlying = Nullable.GetUnderlyingType(typeof(TAs));
-        if (!HasAttribute(name) && underlying != null)
+        var defaultValue = default(TAs);
+        if (!HasAttribute(name) && (underlying != null || defaultValue == null))
         {
             return default(TAs);
         }
@@ -86,43 +87,53 @@ public class OpenTagToken : IToken
     {
         var tagBuilder = new StringBuilder("<");
         tagBuilder.Append(Name.Name);
+        HashSet<string> handledAttributes = new();
         if (Attributes?.Any() ?? false)
         {
-            tagBuilder.Append(" ");
-            tagBuilder.Append(String.Join(" ", Attributes.Select(r =>
+            foreach (var attribute in Attributes)
             {
-                if (r.AttributeName== "@attributes")
+                if (attribute.AttributeName.StartsWith('@')) continue;
+                tagBuilder.Append(" ");
+                if (String.IsNullOrWhiteSpace(attribute.AttributeValue))
                 {
-                    var except = new HashSet<string>(r.AttributeValue.Split(",").Select(r => r.Trim()));
-                    var localVariables = variables.Locals;
-                    var localAttributes = new List<AttributeToken>();
-                    foreach (var local in localVariables)
-                    {
-                        var isAttribute = Attributes?.Where(r => r.AttributeName == local.Key).Any() ?? false;
-                        var isExcluded = except.Contains(local.Key);
-                        if (!isAttribute && !isExcluded)
-                            localAttributes.Add(new AttributeToken(local.Key, local.Value?.ToString()));
-                    }
-                    return String.Join(" ", localAttributes.Select(r => { 
-                        if (r.AttributeValue == null)
-                        {
-                            return r.AttributeName;
-                        } else
-                        {
-                            return $"{r.AttributeName}=\"{variables.ReplaceVariables(r.AttributeValue)}\"";
-                        }
-                    }));
-
-                } else if (String.IsNullOrWhiteSpace(r.AttributeValue))
-                {
-                    return r.AttributeName;
+                    tagBuilder.Append(attribute.AttributeName);
                 }
                 else
                 {
-                    return $"{r.AttributeName}=\"{variables.ReplaceVariables(r.AttributeValue)}\"";
-                }
-            })));
+                    tagBuilder.AppendFormat("{0}=\"{1}\"", attribute.AttributeName, variables.ReplaceVariables(attribute.AttributeValue));
 
+                }
+
+                handledAttributes.Add(attribute.AttributeName);
+            }
+
+            foreach (var attribute in Attributes)
+            {
+                if (!attribute.AttributeName.StartsWith('@')) continue;
+                if (attribute.AttributeName == "@attributes")
+                {
+                    var except = new HashSet<string>(attribute.AttributeValue.Split(",").Select(r => r.Trim()));
+                    var localVariables = variables.Attributes;
+                    foreach (var local in localVariables.Keys)
+                    {
+                        if (handledAttributes.Contains(local)) continue;
+                        tagBuilder.Append(" ");
+                        var isExcluded = except.Contains(local);
+                        if (!isExcluded)
+                        {
+                            var variableValue = localVariables.GetValue<string>(local);
+                            if (String.IsNullOrWhiteSpace(variableValue))
+                            {
+                                tagBuilder.Append(local);
+                            } else
+                            {
+                                var value = variables.ReplaceVariables(variableValue);
+                                tagBuilder.AppendFormat("{0}=\"{1}\"", local, value);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if (Closed)

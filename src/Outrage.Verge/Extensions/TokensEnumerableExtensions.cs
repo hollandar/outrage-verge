@@ -12,6 +12,7 @@ namespace Outrage.Verge.Extensions
 {
     public static class TokensEnumerableExtensions
     {
+        static HashSet<string> selfClosing = new() { "!DOCTYPE", "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr" };
         public static string? GetTextValue(this IEnumerable<TokenParser.IToken> tokens, string nodeName, Func<OpenTagToken, bool>? match = null)
         {
             var innerText = tokens.GetInnerTokens(nodeName, match);
@@ -56,9 +57,10 @@ namespace Outrage.Verge.Extensions
                 if (token is OpenTagToken)
                 {
                     var openTagToken = (OpenTagToken)token;
-                    nodeNames.Push(((OpenTagToken)token).NodeName);
+                    if (!openTagToken.Closed || !selfClosing.Contains(openTagToken.NodeName))
+                        nodeNames.Push(openTagToken.NodeName);
 
-                    if (!yielding && nodeNames.Count == 1 && ((OpenTagToken)token).NodeName == nodeName && (match == null || match((OpenTagToken)token)))
+                    if (!yielding && nodeNames.Count == 1 && openTagToken.NodeName == nodeName && (match == null || match(openTagToken)))
                     {
                         yielding = true;
                         continue;

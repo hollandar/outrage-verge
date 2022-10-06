@@ -27,7 +27,6 @@ namespace Outrage.Verge.Library
 
     public class ContentLibrary
     {
-        static readonly Regex frontmatterRegex = new Regex("^(?:(?<frontmatter>.*?)\r{0,1}\n-{2,}\r{0,1}\n){0,1}(?<content>.*)$", RegexOptions.Singleline | RegexOptions.Compiled);
         private readonly PathBuilder rootPath;
         private readonly Dictionary<string, ContentCache> contentCache = new();
 
@@ -92,11 +91,14 @@ namespace Outrage.Verge.Library
             }
 
             var content = LoadContent(contentName);
-            var contentMatch = frontmatterRegex.Match(content);
+            var memory = content.AsMemory();
+            
+
+            var contentMatch = FrontmatterMatcher.Match(content);
             if (contentMatch.Success)
             {
-                var frontmatterSection = contentMatch.Groups["frontmatter"].Success ? contentMatch.Groups["frontmatter"].Value : String.Empty;
-                var contentSection = contentMatch.Groups["content"].Success ? contentMatch.Groups["content"].Value : String.Empty;
+                var frontmatterSection = contentMatch.Frontmatter;
+                var contentSection = contentMatch.Content;
 
                 var cacheItem = new ContentCache { frontmatter = frontmatterSection, content = contentSection };
                 contentCache[contentKey] = cacheItem;

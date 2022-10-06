@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Markdig.Renderers;
+using Microsoft.Extensions.Logging;
 using Outrage.TokenParser;
 using Outrage.TokenParser.Tokens;
 using Outrage.Verge.Extensions;
@@ -120,8 +121,9 @@ namespace Outrage.Verge.Search
             var documentModel = new DocumentModel(documentIndex);
 
             StringBuilder wordBuilder = new StringBuilder();
-            var headerTokens = tokens.GetInnerTokens("head");
-            var bodyTokens = tokens.GetInnerTokens("body");
+            var htmlTokens = tokens.GetInnerTokens("html");
+            var headerTokens = htmlTokens.GetInnerTokens("head");
+            var bodyTokens = htmlTokens.GetInnerTokens("body");
             var words = new Dictionary<string, int>();
 
             if (!bodyTokens.Any())

@@ -78,15 +78,16 @@ namespace Outrage.Verge.Processor
 
         public RenderContext CreateChildContext(List<AttributeToken>? localAttributes = null, Variables? localVariables = null)
         {
+            var attributeVariables = Variables.Empty;
             var childVariables = localVariables ?? Variables.Empty;
             if (localAttributes != null) foreach (var token in localAttributes)
             {
-                if (!childVariables.HasValue(token.AttributeName))
+                if (!attributeVariables.HasValue(token.AttributeName))
                 {
-                    childVariables.SetValue(token.AttributeName, token.AttributeValue);
+                    attributeVariables.SetValue(token.AttributeName, token.AttributeValue);
                 }
             }
-            var variables = new Variables(childVariables, this.Variables);
+            var variables = new Variables(childVariables, this.Variables, attributeVariables);
             var renderContext = new RenderContext(
                 this, variables
             );

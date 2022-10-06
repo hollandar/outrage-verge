@@ -16,6 +16,7 @@ namespace Outrage.Verge.Processor
     public class Variables
     {
         private Variables? parent = null;
+        private Variables? attributes = null;
         private readonly Dictionary<string, object?> values = new();
 
         public Variables(IDictionary<string, object?> variables)
@@ -42,9 +43,10 @@ namespace Outrage.Verge.Processor
             }
         }
 
-        public Variables(Variables variables, Variables? parent = null) : this(variables.values)
+        public Variables(Variables variables, Variables? parent = null, Variables? attributes = null) : this(variables.values)
         {
             this.parent = parent;
+            this.attributes = attributes;
         }
 
         public Variables Combine(Variables? variables)
@@ -63,9 +65,11 @@ namespace Outrage.Verge.Processor
 
         public bool HasParent => this.parent != null;
         public Variables? Parent => this.parent;
+        public HashSet<string> Keys => new HashSet<string>(this.values.Keys);
         public IDictionary<string, object?> Locals => this.values;
+        public Variables Attributes => this.attributes ?? Variables.Empty;
 
-        public bool HasValue(string name)
+        public bool HasValue(string name, bool considerLocalAttributes = true)
         {
             if (name.Contains('.'))
             {
@@ -74,12 +78,20 @@ namespace Outrage.Verge.Processor
                 return this.HasValue(variableName);
             }
             else
-                return this.values.ContainsKey(name) || (parent?.HasValue(name) ?? false);
+            {
+                var hasAttributeValue = considerLocalAttributes ? (this.attributes?.HasValue(name) ?? false) : false;
+                var hasValue = this.values.ContainsKey(name);
+                var hasParentValue = (parent?.HasValue(name, false) ?? false);
+                return hasAttributeValue || hasValue || hasParentValue;
+            }
         }
 
-        public object? GetValue(string name)
+        public object? GetValue(string name, bool considerLocalAttributes = true)
         {
-            return GetValue<object?>(name) ?? parent?.GetValue(name) ?? null;
+            var variableValue = GetValue<object?>(name);
+            variableValue = variableValue ?? (considerLocalAttributes ? (attributes?.GetValue<object>(name)) : null);
+            variableValue = variableValue ?? parent?.GetValue(name, false);
+            return variableValue ?? null;
         }
 
         private object? TraverseModel(object? model, IEnumerable<string> additionalElements)

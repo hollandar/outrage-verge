@@ -13,15 +13,19 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Library
 {
-    public struct Size
+    public class Size
     {
         public int? width;
         public int? height;
+        public int? resizeWidth;
+        public int? resizeHeight;
 
-        public Size(int? width = null, int? height = null)
+        public Size(int? width = null, int? height = null, int? resizeWidth = null, int? resizeHeight = null)
         {
             this.width = width;
             this.height = height;
+            this.resizeWidth = width;
+            this.resizeHeight = height;
         }
     }
 
@@ -112,6 +116,8 @@ namespace Outrage.Verge.Library
                 {
                     var width = size.width;
                     var height = size.height;
+                    var imageWidth = size.resizeWidth ?? width;
+                    var imageHeight = size.resizeHeight ?? height;
 
                     // Dont render sizes beyond the size of the image, let the browser scale it if needed
                     if ((width.HasValue && width > imageInfo.Width) || (height.HasValue && height > imageInfo.Height))
@@ -124,12 +130,12 @@ namespace Outrage.Verge.Library
                     if (resultingOutputPublishName == null)
                     {
                         ContentName resultName = publishName;
-                        if (width.HasValue && !height.HasValue)
-                            resultName = publishName.InjectExtension(String.Format("w{0}", width));
-                        else if (!width.HasValue && height.HasValue)
-                            resultName = publishName.InjectExtension(String.Format("h{0}", height));
+                        if (imageWidth.HasValue && !imageHeight.HasValue)
+                            resultName = publishName.InjectExtension(String.Format("w{0}", imageWidth));
+                        else if (!imageWidth.HasValue && imageHeight.HasValue)
+                            resultName = publishName.InjectExtension(String.Format("h{0}", imageHeight));
                         else
-                            resultName = publishName.InjectExtension(String.Format("w{0}h{1}", width, height));
+                            resultName = publishName.InjectExtension(String.Format("w{0}h{1}", imageWidth, imageHeight));
 
                         resultingOutputPublishName = resultName;
                     }
@@ -146,23 +152,24 @@ namespace Outrage.Verge.Library
 
                         var resizedImage = image.Clone(operation =>
                         {
-                            if (width.HasValue && !height.HasValue)
+
+                            if (imageWidth.HasValue && !imageHeight.HasValue)
                             {
                                 var aspectRatio = (float)image.Height / image.Width;
-                                var newHeight = (int)(width.Value * aspectRatio);
-                                operation.Resize(width.Value, newHeight);
+                                var newHeight = (int)(imageWidth.Value * aspectRatio);
+                                operation.Resize(imageWidth.Value, newHeight);
                             }
 
-                            if (!width.HasValue && height.HasValue)
+                            if (!imageWidth.HasValue && imageHeight.HasValue)
                             {
                                 var aspectRatio = (float)image.Width / image.Height;
-                                var newWidth = (int)(height.Value * aspectRatio);
-                                operation.Resize(newWidth, height.Value);
+                                var newWidth = (int)(imageHeight.Value * aspectRatio);
+                                operation.Resize(newWidth, imageHeight.Value);
                             }
 
-                            if (width.HasValue && height.HasValue)
+                            if (imageWidth.HasValue && imageHeight.HasValue)
                             {
-                                operation.Resize(width.Value, height.Value);
+                                operation.Resize(imageWidth.Value, imageWidth.Value);
                             }
 
                         });
