@@ -19,7 +19,7 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var condition = openTag.GetAttributeValue<string>("if");
+            var condition = openTag.AssertAttributeValue<string>("if", "Optional should specify the if attribute, a value that is checked for existence and being not null or empty.");
             var conditionValue = renderContext.Variables.ReplaceVariables(condition);
             if (!String.IsNullOrWhiteSpace(conditionValue))
             {

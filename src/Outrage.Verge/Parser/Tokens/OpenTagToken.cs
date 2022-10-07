@@ -38,7 +38,34 @@ public class OpenTagToken : IToken
         return this.Attributes?.Any(r => r.AttributeName == name) ?? false;
     }
 
-    public TAs GetAttributeValue<TAs>(string name)
+    /// <summary>
+    /// Assert that an attribute both exists, and adheres to a custom assertion function.
+    /// </summary>
+    /// <param name="name">Name of the field</param>
+    /// <param name="message">Exception message when in error</param>
+    /// <param name="assertion">A custom assertion function, takes the open tag and name of the attribute, returns true if the assertion should pass.</param>
+    /// <returns>The value of the field, nullable since the assertion may not assert that it is not null.</returns>
+    /// <exception cref="AttributeAssertException">Thrown if the field is not specified, or the assertion fails.</exception>
+    public TType? AssertAttributeValue<TType>(string name, string message, Func<OpenTagToken, string, bool> assertion)
+    {
+        if (HasAttribute(name) && assertion(this, name))
+            return this.GetAttributeValue<TType>(name);
+        else
+            throw new AttributeAssertException(message);
+    }
+
+    /// <summary>
+    /// Assert that an attribute both exists and is not null or whitespace.
+    /// </summary>
+    /// <param name="name">Name of the field</param>
+    /// <param name="message">Excpetion message when in error</param>
+    /// <returns>The value of the field</returns>
+    public TType AssertAttributeValue<TType>(string name, string message)
+    {
+        return AssertAttributeValue<TType>(name, message, (token, name) => !String.IsNullOrWhiteSpace(token.GetAttributeValue(name)))!;
+    }
+
+    public TAs? GetAttributeValue<TAs>(string name)
     {
         var underlying = Nullable.GetUnderlyingType(typeof(TAs));
         var defaultValue = default(TAs);
@@ -78,7 +105,7 @@ public class OpenTagToken : IToken
         return attribute;
     }
 
-    public string GetAttributeValue(string name)
+    public string? GetAttributeValue(string name)
     {
         return GetAttributeValue<string>(name);
     }

@@ -20,7 +20,7 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var name = openTag.GetAttributeValue<string>("name");
+            var name = openTag.AssertAttributeValue<string>("name", "Markdown should specify the name attribute, which refers to the markdown filename to include.");
             var fallbackContentName = renderContext.GetFallbackContent(name);
             var markdownFullString = renderContext.ContentLibrary.GetContentString(fallbackContentName);
 

@@ -26,8 +26,8 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var name = openTag.GetAttributeValue<string>("name");
-            var from = openTag.GetAttributeValue<string>("in");
+            var name = openTag.AssertAttributeValue<string>("name", "ForEach requires an name parameter, which names the variable that stores the current value.");
+            var from = openTag.AssertAttributeValue<string>("in", "ForEach requires an in parameter, which specifies a collection variable.");
             var skip = openTag.GetAttributeValue<int?>("skip");
             var take = openTag.GetAttributeValue<int?>("take");
 

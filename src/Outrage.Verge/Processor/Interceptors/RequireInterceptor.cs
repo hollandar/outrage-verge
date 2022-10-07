@@ -18,7 +18,7 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var name = openTag.GetAttributeValue<string>("name");
+            var name = openTag.AssertAttributeValue<string>("name", "Require should specify name attribute, a variable that must exist to continue generation.");
             if (!renderContext.Variables.HasValue(name))
                 throw new VariableRequiredButNotDefinedException($"The variable {name} is required but is not defined.");
             return Task.FromResult<InterceptorResult?>(null);

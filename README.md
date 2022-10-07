@@ -56,7 +56,7 @@ A simple HTML page from the start site:
         </Right>
     </TwoUp>
 
-    <div class="patternfly-content">
+    <div class="lib-content">
         <h2>
             Verge Start Structure
         </h2>

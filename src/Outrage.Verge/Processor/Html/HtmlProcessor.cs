@@ -103,6 +103,10 @@ namespace Outrage.Verge.Processor.Html
         protected void DefineSection(OpenTagToken openToken, IEnumerable<IToken> tokens)
         {
             var sectionName = openToken.GetAttributeValue(Constants.DefineSectionNameAtt);
+            if (String.IsNullOrWhiteSpace(sectionName))
+            {
+                throw new ArgumentException($"DefineSection must specify a {Constants.DefineSectionNameAtt} field, to name the section");
+            }
             var sectionVariable = HandleVariables(sectionName);
             if (!sectionContent.ContainsKey(sectionVariable))
             {
@@ -252,6 +256,8 @@ namespace Outrage.Verge.Processor.Html
         public override async Task RenderSection(OpenTagToken openTag, StreamWriter writer)
         {
             var sectionName = openTag.GetAttributeValue(Constants.SectionNameAtt);
+            if (String.IsNullOrWhiteSpace(sectionName))
+                throw new ArgumentException($"Section should specify a {Constants.SectionNameAtt} attribute, the name of the section to be rendered");
             var sectionExists = sectionContent.ContainsKey(sectionName);
 
             var sectionExpected = false;

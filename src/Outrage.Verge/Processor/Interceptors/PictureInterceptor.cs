@@ -23,7 +23,7 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var src = openTag.GetAttributeValue<string>("src");
+            var src = openTag.AssertAttributeValue<string>("src", "Picture should specify src, the name of the static image to resize/render.");
             var srcValue = renderContext.Variables.ReplaceVariables(src);
             var sizes = new Size[] {
                 new Size(720),
@@ -41,42 +41,48 @@ namespace Outrage.Verge.Processor.Interceptors
             if (openTag.HasAttribute("widths"))
             {
                 var sizesString = openTag.GetAttributeValue<string>("widths");
-                sizes = sizesString.FromSeparatedValues<int>().Select(w => new Size(w)).ToArray();
+                if (!String.IsNullOrWhiteSpace(sizesString))
+                {
+                    sizes = sizesString.FromSeparatedValues<int>().Select(w => new Size(w)).ToArray();
+                }
             }
 
             if (openTag.HasAttribute("dimensions"))
             {
                 var dimensionsString = openTag.GetAttributeValue<string>("dimensions");
-                var dimensionEntries = dimensionsString.Split(",", StringSplitOptions.RemoveEmptyEntries);
-                HashSet<int?> consideredSizes = new();
-                foreach (var dimensionString in dimensionEntries)
+                if (!String.IsNullOrWhiteSpace(dimensionsString))
                 {
-                    var dimension = dimensionString.Split("/", StringSplitOptions.RemoveEmptyEntries);
-                    int? dimensionWidth = null;
-                    if (dimension.Length >= 1)
+                    var dimensionEntries = dimensionsString.Split(",", StringSplitOptions.RemoveEmptyEntries);
+                    HashSet<int?> consideredSizes = new();
+                    foreach (var dimensionString in dimensionEntries)
                     {
-                        int.TryParse(dimension[0], out var parsedWidth);
-                        dimensionWidth = parsedWidth;
-                    }
-                    double dimensionModifier = 1;
-                    if (dimension.Length >= 2)
-                    {
-                        double.TryParse(dimension[1], out var modifier);
-                        dimensionModifier = modifier;
-                    }
-                    if (dimension.Length > 2)
-                    {
-                        throw new ArgumentException("Too any dimension modifiers, should be in the format width/scalingFactor, example:1024/0.5,8192/0.25");
-                    }
+                        var dimension = dimensionString.Split("/", StringSplitOptions.RemoveEmptyEntries);
+                        int? dimensionWidth = null;
+                        if (dimension.Length >= 1)
+                        {
+                            int.TryParse(dimension[0], out var parsedWidth);
+                            dimensionWidth = parsedWidth;
+                        }
+                        double dimensionModifier = 1;
+                        if (dimension.Length >= 2)
+                        {
+                            double.TryParse(dimension[1], out var modifier);
+                            dimensionModifier = modifier;
+                        }
+                        if (dimension.Length > 2)
+                        {
+                            throw new ArgumentException("Too any dimension modifiers, should be in the format width/scalingFactor, example:1024/0.5,8192/0.25");
+                        }
 
-                    foreach (var size in sizes.Where(size => size.width != null))
-                    {
-                        if (dimension[0] == "*" || size.width == dimensionWidth)
-                                {
-                            if (!consideredSizes.Contains(size.width))
+                        foreach (var size in sizes.Where(size => size.width != null))
+                        {
+                            if (dimension[0] == "*" || size.width == dimensionWidth)
                             {
-                                consideredSizes.Add(size.width);
-                                size.resizeWidth = (int)Math.Ceiling(size.width!.Value / dimensionModifier);
+                                if (!consideredSizes.Contains(size.width))
+                                {
+                                    consideredSizes.Add(size.width);
+                                    size.resizeWidth = (int)Math.Ceiling(size.width!.Value / dimensionModifier);
+                                }
                             }
                         }
                     }
@@ -92,7 +98,7 @@ namespace Outrage.Verge.Processor.Interceptors
             var variables = new Variables(
                 ("srcset", String.Join(", ", srcSetItems)),
                 ("src", srcValue),
-                ("sizes", openTag.GetAttributeValue<string>("sizes")??"")
+                ("sizes", openTag.GetAttributeValue<string>("sizes") ?? "")
             );
             var childRenderContext = renderContext.CreateChildContext(openTag.Attributes, variables);
             await childRenderContext.RenderComponent("components/picture.c.html", writer);

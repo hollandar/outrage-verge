@@ -18,8 +18,8 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var name = openTag.GetAttributeValue<string>("name");
-            var value = openTag.GetAttributeValue<string>("value");
+            var name = openTag.AssertAttributeValue<string>("name", $"Define must specify a name for the variable, via the name attribute.");
+            var value = openTag.AssertAttributeValue<string>("value", $"Define must specify a value to set for the variable {name}, via the value attribute.");
             var ifUndefined = openTag.HasAttribute("if-undefined");
             var defaultTo = openTag.GetAttributeValue<string?>("default");
 

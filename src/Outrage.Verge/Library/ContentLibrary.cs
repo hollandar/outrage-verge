@@ -19,6 +19,11 @@ namespace Outrage.Verge.Library
 {
     public class ContentCache
     {
+        public ContentCache(string? frontmatter, string? content)
+        {
+            this.frontmatter = frontmatter ?? String.Empty;
+            this.content = content ?? String.Empty;
+        }
         public string frontmatter { get; set; }
         public string content { get; set; }
         public object? frontmatterObject { get; set; }
@@ -30,7 +35,7 @@ namespace Outrage.Verge.Library
         private readonly PathBuilder rootPath;
         private readonly Dictionary<string, ContentCache> contentCache = new();
 
-        public ContentLibrary (string rootPath)
+        public ContentLibrary(string rootPath)
         {
             this.rootPath = PathBuilder.From(rootPath);
             if (!this.rootPath.IsDirectory)
@@ -92,7 +97,7 @@ namespace Outrage.Verge.Library
 
             var content = LoadContent(contentName);
             var memory = content.AsMemory();
-            
+
 
             var contentMatch = FrontmatterMatcher.Match(content);
             if (contentMatch.Success)
@@ -100,7 +105,7 @@ namespace Outrage.Verge.Library
                 var frontmatterSection = contentMatch.Frontmatter;
                 var contentSection = contentMatch.Content;
 
-                var cacheItem = new ContentCache { frontmatter = frontmatterSection, content = contentSection };
+                var cacheItem = new ContentCache(frontmatterSection, contentSection);
                 contentCache[contentKey] = cacheItem;
                 return cacheItem;
             }
@@ -113,7 +118,7 @@ namespace Outrage.Verge.Library
             return GetContentAndFrontmatter(contentName).frontmatter;
         }
 
-        public TType GetFrontmatter<TType>(ContentName contentName) where TType: new()
+        public TType GetFrontmatter<TType>(ContentName contentName) where TType : new()
         {
             var frontmatterString = GetContentAndFrontmatter(contentName);
 
@@ -131,7 +136,10 @@ namespace Outrage.Verge.Library
                             .WithNamingConvention(CamelCaseNamingConvention.Instance)
                             .Build();
 
-            var frontmatter = yamlDeserializer.Deserialize<TType>(frontmatterString.frontmatter) ?? new TType();
+            TType frontmatter = new TType();
+            if (!String.IsNullOrWhiteSpace(frontmatterString.frontmatter))
+                frontmatter = yamlDeserializer.Deserialize<TType>(frontmatterString.frontmatter) ?? new TType();
+
             return frontmatter;
         }
 
@@ -192,7 +200,7 @@ namespace Outrage.Verge.Library
         {
             return LoadContent(contentName);
         }
-        
+
         public Stream OpenStream(ContentName filename)
         {
             var path = this.rootPath / filename;
@@ -204,7 +212,7 @@ namespace Outrage.Verge.Library
 
         }
 
-        public TType? Deserialize<TType>(ContentName filename) where TType: new()
+        public TType? Deserialize<TType>(ContentName filename) where TType : new()
         {
             var path = this.rootPath / filename;
 

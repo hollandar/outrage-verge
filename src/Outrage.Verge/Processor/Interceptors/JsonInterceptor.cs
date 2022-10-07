@@ -24,8 +24,8 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var name = openTag.GetAttributeValue<string>("name");
-            var from = openTag.GetAttributeValue<string>("from");
+            var name = openTag.AssertAttributeValue<string>("name", "Json tag should specify name, which names the variable that the json data is loaded into.");
+            var from = openTag.AssertAttributeValue<string>("from", "Json tag should specify from, which names the json file to be loaded.");
             var fromVariable = renderContext.Variables.ReplaceVariables(from);
 
             var content = renderContext.ContentLibrary.GetContentString(renderContext.GetRelativeContentName(fromVariable));

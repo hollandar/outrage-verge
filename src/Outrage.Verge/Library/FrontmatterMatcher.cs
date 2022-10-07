@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,6 +27,15 @@ namespace Outrage.Verge.Library
         {
             var frontmatterContainer = new FrontmatterContainer() { Success = false };
             var sourceMemory = input.AsMemory().Span;
+
+            // if there is no hyphen hyphen, there cant be frontmatter.
+            if (sourceMemory.IndexOf("--") == -1)
+            {
+                frontmatterContainer.Success = true;
+                frontmatterContainer.Content = input;
+                return frontmatterContainer;
+            }
+
             var index = 0;
             var endIndex = -1;
             var startIndex = -1;

@@ -18,7 +18,8 @@ namespace Outrage.Verge.Processor.Interceptors
 
         public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
         {
-            var contentName = renderContext.GetFallbackContent(openTag.GetAttributeValue<string>("name"));
+            var nameValue = openTag.AssertAttributeValue<string>("name", "Include does not define a name attribute, which refers to the file to include inline.");
+            var contentName = renderContext.GetFallbackContent(nameValue);
             var pageProcessor = new HtmlProcessor(contentName, renderContext);
             await pageProcessor.RenderToStream(writer);
 

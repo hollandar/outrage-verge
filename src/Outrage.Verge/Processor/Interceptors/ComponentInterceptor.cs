@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Outrage.TokenParser;
+using Outrage.Verge.Extensions;
 using Outrage.Verge.Parser.Tokens;
 using Outrage.Verge.Processor.Html;
 using System;
@@ -39,7 +40,7 @@ namespace Outrage.Verge.Processor.Interceptors
             }
             else
             {
-                contentName = openTag.GetAttributeValue<string>("name");
+                contentName = openTag.AssertAttributeValue<string>("name", "Component requires a name attribute, identifying the components defining file.");
             }
 
             var fallbackContentName = renderContext.GetFallbackContent(contentName);
@@ -59,6 +60,8 @@ namespace Outrage.Verge.Processor.Interceptors
                         if (!slotTag.Closed)
                             throw new ArgumentException($"Slot tag must be closed, processing {contentName}");
                         var slotName = slotTag.GetAttributeValue("name");
+                        if (String.IsNullOrWhiteSpace(slotName))
+                            throw new ArgumentException("Slot should specify the name attribute, defining the name of the slot to be inserted.");
                         var tokenGroup = GetTokenGroup(tokens, slotName);
                         if (tokenGroup != null)
                             componentTokens.AddRange(tokenGroup);
@@ -103,7 +106,7 @@ namespace Outrage.Verge.Processor.Interceptors
                         }
                     } else
                     {
-                        enumerable.TakeUntil<CloseTagToken>((closeToken) => closeToken.NodeName == openToken.NodeName);
+                        enumerable.TakeUntil<CloseTagToken>((closeToken) => closeToken?.NodeName == openToken.NodeName);
                     }
                 }
             }

@@ -67,6 +67,8 @@ namespace Outrage.Verge.Processor.Markdown
         public override async Task RenderSection(OpenTagToken openTag, StreamWriter writer)
         {
             var sectionName = openTag.GetAttributeValue(Constants.SectionNameAtt);
+            if (String.IsNullOrWhiteSpace(sectionName))
+                throw new ArgumentException($"Section must define a {Constants.SectionNameAtt} attribute, which identifies which section to render in this location.");
             var sectionExists = this.sectionContent.ContainsKey(sectionName);
 
             var sectionExpected = false;

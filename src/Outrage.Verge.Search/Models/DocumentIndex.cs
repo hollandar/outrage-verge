@@ -21,8 +21,8 @@ namespace Outrage.Verge.Search.Models
         [JsonPropertyName("u")]
         public string Uri { get; set; }
         [JsonPropertyName("d")]
-        public string Description { get; internal set; }
+        public string Description { get; set; } = String.Empty;
         [JsonPropertyName("t")]
-        public string Title { get; internal set; }
+        public string Title { get; set; } = String.Empty;
     }
 }

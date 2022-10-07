@@ -14,10 +14,7 @@ public class OnLinkInterceptor : IInterceptor
 
     public async Task<InterceptorResult?> RenderAsync(HtmlProcessor parentProcessor, RenderContext renderContext, OpenTagToken openTag, IEnumerable<IToken> tokens, StreamWriter writer)
     {
-        var uri = openTag.GetAttributeValue<string?>("uri")?.ReplaceVariables(renderContext.Variables);
-        if (string.IsNullOrWhiteSpace(uri))
-            throw new ArgumentException("Uri is required on the OnLink tag.");
-
+        var uri = openTag.AssertAttributeValue<string?>("uri", "Uri is required on the OnLink tag.")?.ReplaceVariables(renderContext.Variables);
         var pageUri = renderContext.Variables.GetValue<string>("uri");
         if (String.IsNullOrWhiteSpace(pageUri))
             throw new ArgumentException("The page uri is not known, should be defined in the uri variable.");
