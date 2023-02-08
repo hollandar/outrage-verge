@@ -20,6 +20,7 @@ using GlobExpressions;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Outrage.Verge.Build;
+using System.Runtime.Serialization;
 
 namespace Outrage.Verge.Host;
 
@@ -117,8 +118,9 @@ public class VergeExecutor : IDisposable
         rootCommand.AddGlobalOption(outputPathOption);
         var logLevelOption = new Option<LogLevel>("--loglevel", () => LogLevel.Information, "The minimum log level to present. Trace, Debug, Information, Warning, Error.");
         rootCommand.AddGlobalOption(logLevelOption);
-
-        serveCommand.SetHandler(async (inputPathValue, outputPathValue, logLevelValue) =>
+        var portOption = new Option<int>("--port", () => 8080, "The port to serve at.");
+        serveCommand.AddOption(portOption);
+        serveCommand.SetHandler(async (inputPathValue, outputPathValue, logLevelValue, portValue) =>
         {
             var inputPath = PathBuilder.From(inputPathValue).CombineIfRelative();
             var outputPath = PathBuilder.From(outputPathValue).CombineIfRelative();
@@ -130,10 +132,10 @@ public class VergeExecutor : IDisposable
                 if (true)
                 {
                     executor.StartWatching();
-                    executor.Host(args, services);
+                    executor.Host(services, portValue);
                 }
             }
-        }, inputPathOption, outputPathOption, logLevelOption);
+        }, inputPathOption, outputPathOption, logLevelOption, portOption);
 
         buildCommand.SetHandler(async (inputPathValue, outputPathValue, logLevelValue) =>
         {
@@ -149,16 +151,17 @@ public class VergeExecutor : IDisposable
         await rootCommand.InvokeAsync(args);
     }
 
-    protected void Host(string[] args, IServiceCollection? services)
+    protected void Host(IServiceCollection? services, int port)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder();
         if (services != null) foreach (var serviceDescriptor in services)
             {
                 builder.Services.Add(serviceDescriptor);
             }
-
+        
         var app = builder.Build();
-
+        app.Urls.Add($"http://localhost:{port}/");
+        app.Urls.Add($"https://localhost:{port + 1}/");
         app.UseHttpsRedirection();
         var fileProvider = new PhysicalFileProvider(outputPath);
         app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider });
@@ -184,7 +187,8 @@ public class VergeExecutor : IDisposable
             if (rebuildRequests > 0)
             {
                 Thread.Sleep(500);
-                rebuildRequests = 0;
+                if (--rebuildRequests > 0)
+                    continue;
 
                 var rebuildTask = RebuildSite();
                 Task.WaitAll(rebuildTask);

@@ -20,11 +20,20 @@ public class OnLinkInterceptor : IInterceptor
             throw new ArgumentException("The page uri is not known, should be defined in the uri variable.");
 
         var variables = Variables.Empty;
-        if (uri == pageUri)
+        if (uri == pageUri) {
             foreach (var attribute in openTag.Attributes)
             {
-                variables.SetValue($"{attribute.AttributeName}", attribute.AttributeValue);
+                variables.SetValue($"active_{attribute.AttributeName}", attribute.AttributeValue);
             }
+        }
+        else
+        {
+            foreach (var attribute in openTag.Attributes)
+            {
+                variables.SetValue($"inactive_{attribute.AttributeName}", attribute.AttributeValue);
+            }
+            variables.SetValue("_uri", uri);
+        }
 
         variables.SetValue("uri", uri);
 
