@@ -27,11 +27,17 @@ public class OnLinkInterceptor : IInterceptor
         {
             foreach (var attribute in openTag.Attributes)
             {
-                variables.SetValue($"_{attribute.AttributeName}", attribute.AttributeValue);
+                variables.SetValue($"active_{attribute.AttributeName}", attribute.AttributeValue);
             }
         }
         else
+        {
+            foreach (var attribute in openTag.Attributes)
+            {
+                variables.SetValue($"inactive_{attribute.AttributeName}", attribute.AttributeValue);
+            }
             variables.SetValue("_uri", uri);
+        }
 
         var childRenderContext = renderContext.CreateChildContext(variables);
         var htmlProcessor = new HtmlProcessor(tokens, childRenderContext);
