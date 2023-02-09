@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Outrage.Verge.Build;
 using System.Runtime.Serialization;
+using Outrage.Verge.Search;
 
 namespace Outrage.Verge.Host;
 
@@ -96,6 +97,7 @@ public class VergeExecutor : IDisposable
         services.AddSingleton<IInterceptor, OnLinkInterceptor>();
         services.AddSingleton<IInterceptor, OptionalInterceptor>();
         services.AddSingleton<IContentGenerator, SitemapGenerator>();
+        services.AddSingleton<IContentGenerator, SearchGenerator>();
         services.AddSingleton<IProcessorFactory, HtmlProcessorFactory>();
         services.AddSingleton<IProcessorFactory, MarkdownProcessorFactory>();
 

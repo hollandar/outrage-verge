@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Outrage.Verge.Processor
 {
-    public class ThemeContext
+    public sealed class ThemeContext
     {
         public ThemeContext(ContentName themeBase, ThemeConfiguration configuration)
         {
@@ -23,7 +23,7 @@ namespace Outrage.Verge.Processor
         public ThemeConfiguration Configuration { get; set; }
     }
 
-    public class ThemesFactory
+    public sealed class ThemesFactory
     {
         private readonly ContentLibrary contentLibrary;
         private readonly string themeFallback;

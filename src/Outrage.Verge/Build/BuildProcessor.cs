@@ -60,7 +60,7 @@ namespace Outrage.Verge.Build
                     throw new Exception("Site path or Publish path is empty in build configuration.");
                 var siteProcessor = new SiteProcessor(
                     ContentName.From(site.Path),
-                    PathBuilder.From(site.Publish).CombineIfRelative(),
+                    PathBuilder.From(site.Publish).CombineIfRelative(rootPath),
                     buildContext
                     );
 

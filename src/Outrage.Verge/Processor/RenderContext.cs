@@ -49,6 +49,10 @@ namespace Outrage.Verge.Processor
 
                 variables["themeName"] = SiteConfiguration.Theme;
                 variables["themeBase"] = theme.ThemeBase;
+
+                foreach (var variable in theme.Configuration.Variables) {
+                    variables[variable.Name] = variable.Value;
+                }
             }
             foreach (var variable in SiteConfiguration.Variables)
             {

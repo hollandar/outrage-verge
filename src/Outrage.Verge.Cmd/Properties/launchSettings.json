@@ -2,7 +2,7 @@
   "profiles": {
     "Outrage.Verge.Cmd": {
       "commandName": "Project",
-      "commandLineArgs": "build --in c:\\cm\\outrage\\aaaa\\ --out c:\\cm\\outrage\\aaaa\\publish"
+      "commandLineArgs": "build --in c:\\cm\\outrage\\outrage-webefinity --out .\\publish"
     }
   }
 }

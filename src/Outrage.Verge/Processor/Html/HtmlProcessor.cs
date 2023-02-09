@@ -215,7 +215,7 @@ namespace Outrage.Verge.Processor.Html
                     else
                     {
                         writer.Write(closeTagToken.ToString());
-                        skipSpace = true;
+                        skipSpace = false;
                         continue;
                     }
                 }

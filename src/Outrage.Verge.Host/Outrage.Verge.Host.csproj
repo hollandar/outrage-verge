@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Outrage.Verge.Search\Outrage.Verge.Search.csproj" />
     <ProjectReference Include="..\Outrage.Verge\Outrage.Verge.csproj" />
   </ItemGroup>
 
